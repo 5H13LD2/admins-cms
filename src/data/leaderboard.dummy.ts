@@ -1,0 +1,55 @@
+import { LeaderboardEntry } from '@/types';
+
+export const dummyLeaderboard: LeaderboardEntry[] = [
+  {
+    userId: 'user-2',
+    username: 'jane_smith',
+    avatar: 'https://i.pravatar.cc/150?img=5',
+    totalPoints: 1250,
+    rank: 1,
+    quizScore: 650,
+    challengeScore: 600,
+    streakDays: 15,
+  },
+  {
+    userId: 'user-4',
+    username: 'alice_brown',
+    avatar: 'https://i.pravatar.cc/150?img=9',
+    totalPoints: 1180,
+    rank: 2,
+    quizScore: 580,
+    challengeScore: 600,
+    streakDays: 12,
+  },
+  {
+    userId: 'user-1',
+    username: 'john_doe',
+    avatar: 'https://i.pravatar.cc/150?img=1',
+    totalPoints: 1050,
+    rank: 3,
+    quizScore: 500,
+    challengeScore: 550,
+    streakDays: 10,
+  },
+  {
+    userId: 'user-5',
+    username: 'charlie_wilson',
+    avatar: 'https://i.pravatar.cc/150?img=15',
+    totalPoints: 890,
+    rank: 4,
+    quizScore: 450,
+    challengeScore: 440,
+    streakDays: 8,
+  },
+  {
+    userId: 'user-3',
+    username: 'bob_johnson',
+    avatar: 'https://i.pravatar.cc/150?img=12',
+    totalPoints: 720,
+    rank: 5,
+    quizScore: 350,
+    challengeScore: 370,
+    streakDays: 5,
+  },
+];
+

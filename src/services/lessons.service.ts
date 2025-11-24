@@ -1,0 +1,112 @@
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  orderBy
+} from 'firebase/firestore';
+import { db } from './firebase';
+import { Lesson } from '@/types';
+
+export const lessonsService = {
+  // Get all lessons for a module
+  getByModuleId: async (courseId: string, moduleId: string): Promise<Lesson[]> => {
+    try {
+      const lessonsRef = collection(db, `courses/${courseId}/modules/${moduleId}/lessons`);
+      const q = query(lessonsRef, orderBy('order', 'asc'));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Lesson[];
+    } catch (error) {
+      console.error('Error getting lessons:', error);
+      throw error;
+    }
+  },
+
+  // Get all lessons (across all modules)
+  getAll: async (): Promise<Lesson[]> => {
+    try {
+      const coursesSnapshot = await getDocs(collection(db, 'courses'));
+      const allLessons: Lesson[] = [];
+
+      for (const courseDoc of coursesSnapshot.docs) {
+        const modulesSnapshot = await getDocs(collection(db, `courses/${courseDoc.id}/modules`));
+
+        for (const moduleDoc of modulesSnapshot.docs) {
+          const lessonsRef = collection(db, `courses/${courseDoc.id}/modules/${moduleDoc.id}/lessons`);
+          const lessonsSnapshot = await getDocs(lessonsRef);
+          const lessons = lessonsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            moduleId: moduleDoc.id,
+            ...doc.data()
+          })) as Lesson[];
+          allLessons.push(...lessons);
+        }
+      }
+
+      return allLessons;
+    } catch (error) {
+      console.error('Error getting all lessons:', error);
+      throw error;
+    }
+  },
+
+  // Get single lesson by ID
+  getById: async (courseId: string, moduleId: string, lessonId: string): Promise<Lesson | null> => {
+    try {
+      const docRef = doc(db, `courses/${courseId}/modules/${moduleId}/lessons`, lessonId);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        return { id: docSnap.id, moduleId, ...docSnap.data() } as Lesson;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting lesson:', error);
+      throw error;
+    }
+  },
+
+  // Create new lesson
+  create: async (courseId: string, moduleId: string, lessonData: Omit<Lesson, 'id' | 'moduleId'>): Promise<string> => {
+    try {
+      const lessonsRef = collection(db, `courses/${courseId}/modules/${moduleId}/lessons`);
+      const docRef = await addDoc(lessonsRef, {
+        ...lessonData,
+        moduleId
+      });
+      return docRef.id;
+    } catch (error) {
+      console.error('Error creating lesson:', error);
+      throw error;
+    }
+  },
+
+  // Update lesson
+  update: async (courseId: string, moduleId: string, lessonId: string, lessonData: Partial<Lesson>): Promise<void> => {
+    try {
+      const docRef = doc(db, `courses/${courseId}/modules/${moduleId}/lessons`, lessonId);
+      await updateDoc(docRef, lessonData);
+    } catch (error) {
+      console.error('Error updating lesson:', error);
+      throw error;
+    }
+  },
+
+  // Delete lesson
+  delete: async (courseId: string, moduleId: string, lessonId: string): Promise<void> => {
+    try {
+      const docRef = doc(db, `courses/${courseId}/modules/${moduleId}/lessons`, lessonId);
+      await deleteDoc(docRef);
+    } catch (error) {
+      console.error('Error deleting lesson:', error);
+      throw error;
+    }
+  }
+};
