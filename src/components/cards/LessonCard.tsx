@@ -39,3 +39,7 @@ export default function LessonCard({ lesson, onView }: LessonCardProps) {
   );
 }
 
+
+
+
+

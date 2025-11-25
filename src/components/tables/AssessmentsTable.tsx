@@ -35,3 +35,7 @@ export default function AssessmentsTable() {
   return <DataTable columns={columns} data={dashboardAssessmentsTable} />;
 }
 
+
+
+
+

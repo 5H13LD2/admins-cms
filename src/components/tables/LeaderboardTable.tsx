@@ -26,3 +26,7 @@ export default function LeaderboardTable() {
   return <DataTable columns={columns} data={dashboardLeaderboardTable} />;
 }
 
+
+
+
+

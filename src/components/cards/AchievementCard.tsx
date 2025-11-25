@@ -33,3 +33,7 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
   );
 }
 
+
+
+
+

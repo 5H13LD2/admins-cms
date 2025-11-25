@@ -1,26 +1,43 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
 import SearchBar from '@/components/common/SearchBar';
-import { dummyCourses } from '@/data/dummyData';
+import { useCourses } from '@/hooks/useCourses';
+import CourseCard from '@/components/cards/CourseCard';
 
 export default function CoursesPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [courses] = useState(dummyCourses);
+  const { courses, loading, error } = useCourses();
 
   const filteredCourses = courses.filter((course) =>
     course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     course.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-[50vh] flex-col items-center justify-center gap-4 text-destructive">
+        <AlertCircle className="h-8 w-8" />
+        <p>Error loading courses: {error.message}</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
-
-
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Courses</h1>
@@ -44,39 +61,7 @@ export default function CoursesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCourses.map((course) => (
-          <Card key={course.id} className="hover:shadow-lg transition-shadow">
-            {course.image && (
-              <div className="h-48 overflow-hidden rounded-t-lg">
-                <img
-                  src={course.image}
-                  alt={course.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <CardTitle className="text-lg">{course.title}</CardTitle>
-                <Badge variant={course.status === 'active' ? 'default' : 'secondary'}>
-                  {course.status}
-                </Badge>
-              </div>
-              <CardDescription className="line-clamp-2">
-                {course.description}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                <span>{course.moduleCount} modules</span>
-                <span>{course.duration}</span>
-              </div>
-              <Link to={`/courses/${course.id}`}>
-                <Button variant="outline" className="w-full">
-                  View Details
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <CourseCard key={course.id} course={course} />
         ))}
       </div>
 

@@ -52,6 +52,10 @@ export const coursesService = {
     try {
       const docRef = await addDoc(collection(db, COURSES_COLLECTION), {
         ...courseData,
+        enrolledUsers: courseData.enrolledUsers || [],
+        compilerTypeId: courseData.compilerTypeId || '',
+        CourseId: courseData.CourseId || '',
+        CourseDetail: courseData.CourseDetail || '',
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now()
       });

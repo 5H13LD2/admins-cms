@@ -30,16 +30,23 @@ import FeedbackPage from './pages/feedback/FeedbackPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import ReportsPage from './pages/analytics/ReportsPage';
 import SettingsPage from './pages/settings/SettingsPage';
+import LoginPage from './pages/auth/LoginPage';
+import EditCoursePage from './pages/courses/EditCoursePage';
 
 function App() {
   return (
     <ThemeProvider>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<LoginPage />} />
+
+          {/* Protected Routes */}
           <Route path="/" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="courses" element={<CoursesPage />} />
             <Route path="courses/create" element={<CreateCoursePage />} />
+            <Route path="courses/:id/edit" element={<EditCoursePage />} />
             <Route path="courses/:id" element={<CourseDetailsPage />} />
 
             <Route path="modules" element={<ModulesPage />} />

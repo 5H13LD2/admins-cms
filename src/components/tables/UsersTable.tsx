@@ -29,3 +29,7 @@ export default function UsersTable() {
   return <DataTable columns={columns} data={dashboardUsersTable} />;
 }
 
+
+
+
+

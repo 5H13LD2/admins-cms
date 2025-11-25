@@ -1,40 +1,65 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCourses } from '@/hooks/useCourses';
+import { Course } from '@/types';
 
+import { useAuth } from '@/hooks/useAuth';
 
 export default function CreateCoursePage() {
   const navigate = useNavigate();
+  const { createCourse } = useCourses();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     duration: '',
     image: '',
-    status: 'active',
+    status: 'active' as 'active' | 'inactive' | 'draft' | 'archived',
+    compilerTypeId: '',
+    CourseId: '',
+    CourseDetail: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user) {
+      console.error('User must be logged in to create a course');
+      // TODO: Show toast notification
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // TODO: Implement course creation with Firebase
-      console.log('Creating course:', formData);
+      const courseData: Omit<Course, 'id'> = {
+        title: formData.title,
+        description: formData.description,
+        duration: formData.duration,
+        image: formData.image,
+        status: formData.status,
+        moduleCount: 0,
+        enrolledUsers: [],
+        compilerTypeId: formData.compilerTypeId,
+        CourseId: formData.CourseId,
+        CourseDetail: formData.CourseDetail,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Navigate to courses page
+      await createCourse(courseData);
       navigate('/courses');
     } catch (error) {
       console.error('Error creating course:', error);
+      // TODO: Add toast notification for error
     } finally {
       setIsLoading(false);
     }
@@ -46,8 +71,6 @@ export default function CreateCoursePage() {
 
   return (
     <div>
-
-
       <div className="flex items-center gap-4 mb-6">
         <Link to="/courses">
           <Button variant="ghost" size="icon">
@@ -112,6 +135,8 @@ export default function CreateCoursePage() {
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -131,9 +156,48 @@ export default function CreateCoursePage() {
               </p>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="compilerTypeId">Compiler Type ID</Label>
+                <Input
+                  id="compilerTypeId"
+                  placeholder="e.g., python, javascript"
+                  value={formData.compilerTypeId}
+                  onChange={(e) => handleChange('compilerTypeId', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="CourseId">Course ID</Label>
+                <Input
+                  id="CourseId"
+                  placeholder="Enter course identifier"
+                  value={formData.CourseId}
+                  onChange={(e) => handleChange('CourseId', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="CourseDetail">Course Detail</Label>
+                <Input
+                  id="CourseDetail"
+                  placeholder="Additional course details"
+                  value={formData.CourseDetail}
+                  onChange={(e) => handleChange('CourseDetail', e.target.value)}
+                />
+              </div>
+            </div>
+
             <div className="flex gap-4">
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Creating...' : 'Create Course'}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Course'
+                )}
               </Button>
               <Link to="/courses">
                 <Button type="button" variant="outline">

@@ -21,3 +21,7 @@ export default function QuizzesTable() {
   return <DataTable columns={columns} data={dashboardQuizzesTable} />;
 }
 
+
+
+
+
