@@ -18,6 +18,8 @@ export interface Question {
   correctOptionIndex: number;
   explanation?: string;
   points?: number;
+  module_id?: string;
+  order?: number;
 }
 
 export interface QuizFormData {
