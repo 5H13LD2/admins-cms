@@ -16,7 +16,9 @@ export interface Question {
   question: string;
   options: string[];
   correctOptionIndex: number;
-  explanation?: string;
+  explanation: string;
+  module_id: string;
+  order: number;
   points?: number;
 }
 
@@ -26,11 +28,15 @@ export interface QuizFormData {
   difficulty: 'EASY' | 'NORMAL' | 'HARD';
   timeLimit?: number;
   passingScore?: number;
+  moduleId: string;
+  order: number;
 }
 
 export interface QuestionFormData {
   question: string;
   options: string[];
   correctOptionIndex: number;
-  explanation?: string;
+  explanation: string;
+  module_id: string;
+  order: number;
 }

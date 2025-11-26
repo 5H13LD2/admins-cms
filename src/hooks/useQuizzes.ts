@@ -30,6 +30,11 @@ export const useQuizzes = (moduleId?: string) => {
         getQuiz: quizzesService.getById,
         createQuiz: quizzesService.create,
         updateQuiz: quizzesService.update,
-        deleteQuiz: quizzesService.delete
+        deleteQuiz: quizzesService.delete,
+        addQuestion: quizzesService.addQuestion,
+        updateQuestion: quizzesService.updateQuestion,
+        deleteQuestion: quizzesService.deleteQuestion,
+        getQuestions: quizzesService.getQuestions,
+        createQuestionWithId: quizzesService.createQuestionWithId
     };
 };

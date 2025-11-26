@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 
@@ -14,7 +14,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { dummyModules, dummyQuizzes } from '@/data/dummyData';
+import { useQuizzes } from '@/hooks/useQuizzes';
+import { Quiz } from '@/types';
 
 const difficultyCopy: Record<string, { label: string; variant: 'default' | 'secondary'; color: string }> = {
   EASY: { label: 'Easy', variant: 'secondary', color: 'text-green-600' },
@@ -26,15 +27,37 @@ export default function QuizzesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [moduleFilter, setModuleFilter] = useState('all');
+  const [allQuizzes, setAllQuizzes] = useState<Quiz[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { getAllQuizzes } = useQuizzes();
 
-  const moduleMap = useMemo(() => {
-    return dummyModules.reduce<Record<string, string>>((acc, module) => {
-      acc[module.id] = module.title;
-      return acc;
-    }, {});
-  }, []);
+  useEffect(() => {
+    const fetchQuizzes = async () => {
+      try {
+        setLoading(true);
+        const quizzes = await getAllQuizzes();
+        setAllQuizzes(quizzes);
+      } catch (error) {
+        console.error('Error fetching quizzes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQuizzes();
+  }, [getAllQuizzes]);
 
-  const filteredQuizzes = dummyQuizzes.filter((quiz) => {
+  const modules = useMemo(() => {
+    // Extract unique modules from quizzes
+    const uniqueModules = new Map<string, string>();
+    allQuizzes.forEach(quiz => {
+      if (!uniqueModules.has(quiz.moduleId)) {
+        uniqueModules.set(quiz.moduleId, quiz.moduleId);
+      }
+    });
+    return Array.from(uniqueModules.entries()).map(([id, title]) => ({ id, title }));
+  }, [allQuizzes]);
+
+  const filteredQuizzes = allQuizzes.filter((quiz) => {
     const matchesSearch =
       quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (quiz.description ?? '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -86,7 +109,7 @@ export default function QuizzesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All modules</SelectItem>
-              {dummyModules.map((module) => (
+              {modules.map((module) => (
                 <SelectItem key={module.id} value={module.id}>
                   {module.title}
                 </SelectItem>
@@ -109,36 +132,43 @@ export default function QuizzesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredQuizzes.map((quiz) => {
-              const difficultyMeta = difficultyCopy[quiz.difficulty];
-              return (
-                <TableRow key={quiz.id}>
-                  <TableCell>
-                    <div className="font-medium text-foreground">{quiz.title}</div>
-                    <div className="text-xs text-muted-foreground">{quiz.description ?? '—'}</div>
-                  </TableCell>
-                  <TableCell>{moduleMap[quiz.moduleId]}</TableCell>
-                  <TableCell>
-                    <Badge variant={difficultyMeta.variant}>{difficultyMeta.label}</Badge>
-                  </TableCell>
-                  <TableCell>{quiz.questions.length}</TableCell>
-                  <TableCell>{quiz.passingScore ?? '—'}%</TableCell>
-                  <TableCell className="text-right">
-                    <Link to={`/quizzes/${quiz.id}`}>
-                      <Button size="sm" variant="outline">
-                        View
-                      </Button>
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {filteredQuizzes.length === 0 && (
+            {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                  Loading quizzes...
+                </TableCell>
+              </TableRow>
+            ) : filteredQuizzes.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
                   No quizzes found for the selected filters.
                 </TableCell>
               </TableRow>
+            ) : (
+              filteredQuizzes.map((quiz) => {
+                const difficultyMeta = difficultyCopy[quiz.difficulty];
+                return (
+                  <TableRow key={quiz.id}>
+                    <TableCell>
+                      <div className="font-medium text-foreground">{quiz.title}</div>
+                      <div className="text-xs text-muted-foreground">{quiz.description ?? '—'}</div>
+                    </TableCell>
+                    <TableCell>{quiz.moduleId}</TableCell>
+                    <TableCell>
+                      <Badge variant={difficultyMeta.variant}>{difficultyMeta.label}</Badge>
+                    </TableCell>
+                    <TableCell>{quiz.questions?.length ?? 0}</TableCell>
+                    <TableCell>{quiz.passingScore ?? '—'}%</TableCell>
+                    <TableCell className="text-right">
+                      <Link to={`/quizzes/${quiz.id}`}>
+                        <Button size="sm" variant="outline">
+                          View
+                        </Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
