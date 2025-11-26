@@ -186,24 +186,37 @@ export default function ModuleDetailsPage() {
           {lessons.length === 0 ? (
             <p className="text-sm text-muted-foreground">No lessons linked to this module yet.</p>
           ) : (
-            lessons.map((lesson) => (
-              <div
-                key={lesson.id}
-                className="rounded-lg border border-border p-4 hover:border-primary/40 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      Lesson {lesson.order}: {lesson.title}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{lesson.content}</p>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant="secondary">{lesson.duration}</Badge>
+            lessons.map((lesson) => {
+              const resolvedCourseId = lesson.courseId || module.courseId;
+              const lessonLink =
+                resolvedCourseId && lesson.moduleId
+                  ? `/lessons/${lesson.id}?courseId=${resolvedCourseId}&moduleId=${lesson.moduleId}`
+                  : `/lessons/${lesson.id}`;
+
+              return (
+                <div
+                  key={lesson.id}
+                  className="rounded-lg border border-border p-4 hover:border-primary/40 transition-colors"
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        Lesson {lesson.order}: {lesson.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{lesson.content}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="secondary">{lesson.duration}</Badge>
+                      <Link to={lessonLink}>
+                        <Button variant="ghost" size="sm">
+                          View lesson
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </CardContent>
       </Card>

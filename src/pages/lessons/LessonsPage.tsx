@@ -140,6 +140,11 @@ export default function LessonsPage() {
             {paginatedLessons.map((lesson) => {
               const moduleMeta = metaLookup.moduleMap[lesson.moduleId];
               const courseTitle = moduleMeta ? metaLookup.courseMap[moduleMeta.courseId] : '—';
+              const resolvedCourseId = lesson.courseId || moduleMeta?.courseId;
+              const lessonDetailsLink =
+                resolvedCourseId && lesson.moduleId
+                  ? `/lessons/${lesson.id}?courseId=${resolvedCourseId}&moduleId=${lesson.moduleId}`
+                  : `/lessons/${lesson.id}`;
               return (
                 <Card key={lesson.id} className="hover:border-primary/40 transition-colors">
                   <CardHeader>
@@ -157,7 +162,7 @@ export default function LessonsPage() {
                       </span>
                       <Badge variant="secondary">Order {lesson.order}</Badge>
                     </div>
-                    <Link to={`/lessons/${lesson.id}`}>
+                    <Link to={lessonDetailsLink}>
                       <Button variant="outline" className="w-full">
                         View Lesson
                       </Button>

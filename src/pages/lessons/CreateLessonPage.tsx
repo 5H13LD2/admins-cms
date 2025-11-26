@@ -105,7 +105,8 @@ export default function CreateLessonPage() {
       });
 
       success('Lesson created successfully!');
-      navigate(`/courses/${formData.courseId}/modules/${formData.moduleId}`);
+      const detailsPath = `/lessons/${formData.lessonId}?courseId=${formData.courseId}&moduleId=${formData.moduleId}`;
+      navigate(detailsPath);
     } catch (err) {
       console.error('Error creating lesson:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to create lesson';
