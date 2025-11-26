@@ -19,12 +19,18 @@ export const coursesService = {
   // Get all courses
   getAll: async (): Promise<Course[]> => {
     try {
-      const q = query(collection(db, COURSES_COLLECTION), orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      const querySnapshot = await getDocs(collection(db, COURSES_COLLECTION));
+      const courses = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Course[];
+
+      // Sort by createdAt on client side (newest first)
+      return courses.sort((a, b) => {
+        const aTime = a.createdAt?.seconds || 0;
+        const bTime = b.createdAt?.seconds || 0;
+        return bTime - aTime; // descending order
+      });
     } catch (error) {
       console.error('Error getting courses:', error);
       throw error;

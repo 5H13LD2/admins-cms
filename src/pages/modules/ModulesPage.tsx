@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Layers, Clock, BookOpen, Plus } from 'lucide-react';
+import { Layers, Clock, BookOpen, Plus, Loader2, AlertCircle } from 'lucide-react';
 
 import SearchBar from '@/components/common/SearchBar';
 import Pagination from '@/components/common/Pagination';
@@ -8,27 +8,30 @@ import EmptyState from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { dummyCourses, dummyModules } from '@/data/dummyData';
+import { useCourses } from '@/hooks/useCourses';
+import { useModules } from '@/hooks/useModules';
 import ModuleCard from '@/components/cards/ModuleCard';
 
 const MODULES_PER_PAGE = 6;
 
 export default function ModulesPage() {
+  const { courses, loading: coursesLoading } = useCourses();
+  const { modules, loading: modulesLoading, error } = useModules();
   const [searchQuery, setSearchQuery] = useState('');
   const [courseFilter, setCourseFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
   const courseLookup = useMemo(() => {
-    return dummyCourses.reduce<Record<string, string>>((acc, course) => {
+    return courses.reduce<Record<string, string>>((acc, course) => {
       acc[course.id] = course.title;
       return acc;
     }, {});
-  }, []);
+  }, [courses]);
 
-  const filteredModules = dummyModules.filter((module) => {
+  const filteredModules = modules.filter((module) => {
     const matchesSearch =
-      module.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      module.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (module.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (module.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCourse = courseFilter === 'all' || module.courseId === courseFilter;
     return matchesSearch && matchesCourse;
   });
@@ -40,12 +43,12 @@ export default function ModulesPage() {
   const quickStats = [
     {
       label: 'Total Modules',
-      value: dummyModules.length,
+      value: modules.length,
       icon: Layers,
     },
     {
       label: 'Active Courses',
-      value: new Set(dummyModules.map((module) => module.courseId)).size,
+      value: new Set(modules.map((module) => module.courseId)).size,
       icon: BookOpen,
     },
     {
@@ -54,6 +57,26 @@ export default function ModulesPage() {
       icon: Clock,
     },
   ];
+
+  if (modulesLoading || coursesLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-[50vh] flex-col items-center justify-center gap-4 text-destructive">
+        <AlertCircle className="h-8 w-8" />
+        <p>Error loading modules: {error.message}</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
@@ -101,7 +124,7 @@ export default function ModulesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Courses</SelectItem>
-              {dummyCourses.map((course) => (
+              {courses.map((course) => (
                 <SelectItem key={course.id} value={course.id}>
                   {course.title}
                 </SelectItem>

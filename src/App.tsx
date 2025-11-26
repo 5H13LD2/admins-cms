@@ -2,12 +2,15 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
+import Toaster from './components/common/Toaster';
 import CoursesPage from './pages/courses/CoursesPage';
 import CourseDetailsPage from './pages/courses/CourseDetailsPage';
 import CreateCoursePage from './pages/courses/CreateCoursePage';
 import ModulesPage from './pages/modules/ModulesPage';
 import ModuleDetailsPage from './pages/modules/ModuleDetailsPage';
 import CreateModulePage from './pages/modules/CreateModulePage';
+import EditModulePage from './pages/modules/EditModulePage';
 import LessonsPage from './pages/lessons/LessonsPage';
 import LessonDetailsPage from './pages/lessons/LessonDetailsPage';
 import CreateLessonPage from './pages/lessons/CreateLessonPage';
@@ -36,8 +39,10 @@ import EditCoursePage from './pages/courses/EditCoursePage';
 function App() {
   return (
     <ThemeProvider>
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
+      <ToastProvider>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Toaster />
+          <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
 
@@ -51,6 +56,7 @@ function App() {
 
             <Route path="modules" element={<ModulesPage />} />
             <Route path="modules/create" element={<CreateModulePage />} />
+            <Route path="modules/:moduleId/edit" element={<EditModulePage />} />
             <Route path="modules/:moduleId" element={<ModuleDetailsPage />} />
 
             <Route path="lessons" element={<LessonsPage />} />
@@ -85,8 +91,9 @@ function App() {
 
             <Route path="settings" element={<SettingsPage />} />
           </Route>
-        </Routes>
-      </Router>
+          </Routes>
+        </Router>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

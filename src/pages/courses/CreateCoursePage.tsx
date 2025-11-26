@@ -9,13 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCourses } from '@/hooks/useCourses';
 import { Course } from '@/types';
-
 import { useAuth } from '@/hooks/useAuth';
+import { useToastContext } from '@/context/ToastContext';
 
 export default function CreateCoursePage() {
   const navigate = useNavigate();
   const { createCourse } = useCourses();
   const { user } = useAuth();
+  const { success, error: showError } = useToastContext();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -32,8 +33,7 @@ export default function CreateCoursePage() {
     e.preventDefault();
 
     if (!user) {
-      console.error('User must be logged in to create a course');
-      // TODO: Show toast notification
+      showError('User must be logged in to create a course');
       return;
     }
 
@@ -56,10 +56,11 @@ export default function CreateCoursePage() {
       };
 
       await createCourse(courseData);
+      success('Course created successfully!');
       navigate('/courses');
     } catch (error) {
       console.error('Error creating course:', error);
-      // TODO: Add toast notification for error
+      showError(error instanceof Error ? error.message : 'Failed to create course');
     } finally {
       setIsLoading(false);
     }

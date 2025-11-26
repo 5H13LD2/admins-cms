@@ -1,17 +1,18 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Lesson } from '@/types';
 import { lessonsService } from '@/services/lessons.service';
 
 export const useLessons = (courseId?: string, moduleId?: string) => {
     const [lessons, setLessons] = useState<Lesson[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
     const fetchLessons = useCallback(async () => {
-        if (!courseId || !moduleId) return;
         try {
             setLoading(true);
-            const data = await lessonsService.getByModuleId(courseId, moduleId);
+            const data = (courseId && moduleId)
+                ? await lessonsService.getByModuleId(courseId, moduleId)
+                : await lessonsService.getAll();
             setLessons(data);
             setError(null);
         } catch (err) {
@@ -21,11 +22,15 @@ export const useLessons = (courseId?: string, moduleId?: string) => {
         }
     }, [courseId, moduleId]);
 
+    useEffect(() => {
+        fetchLessons();
+    }, [fetchLessons]);
+
     return {
         lessons,
         loading,
         error,
-        fetchLessons,
+        refresh: fetchLessons,
         getLesson: lessonsService.getById,
         createLesson: lessonsService.create,
         updateLesson: lessonsService.update,

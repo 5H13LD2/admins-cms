@@ -1,45 +1,78 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookMarked, Clock, Plus } from 'lucide-react';
+import { BookMarked, Clock, Plus, Loader2, AlertCircle } from 'lucide-react';
 
 import SearchBar from '@/components/common/SearchBar';
 import EmptyState from '@/components/common/EmptyState';
+import Pagination from '@/components/common/Pagination';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { dummyCourses, dummyLessons, dummyModules } from '@/data/dummyData';
+import { useCourses } from '@/hooks/useCourses';
+import { useModules } from '@/hooks/useModules';
+import { useLessons } from '@/hooks/useLessons';
+
+const LESSONS_PER_PAGE = 6;
 
 export default function LessonsPage() {
+  const { courses, loading: coursesLoading } = useCourses();
+  const { modules, loading: modulesLoading } = useModules();
+  const { lessons, loading: lessonsLoading, error } = useLessons();
   const [searchQuery, setSearchQuery] = useState('');
   const [moduleFilter, setModuleFilter] = useState('all');
   const [courseFilter, setCourseFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const metaLookup = useMemo(() => {
-    const moduleMap = dummyModules.reduce<Record<string, { module: string; courseId: string }>>(
+    const moduleMap = modules.reduce<Record<string, { module: string; courseId: string }>>(
       (acc, module) => {
         acc[module.id] = { module: module.title, courseId: module.courseId };
         return acc;
       },
       {},
     );
-    const courseMap = dummyCourses.reduce<Record<string, string>>((acc, course) => {
+    const courseMap = courses.reduce<Record<string, string>>((acc, course) => {
       acc[course.id] = course.title;
       return acc;
     }, {});
     return { moduleMap, courseMap };
-  }, []);
+  }, [modules, courses]);
 
-  const filteredLessons = dummyLessons.filter((lesson) => {
+  const filteredLessons = lessons.filter((lesson) => {
     const moduleMeta = metaLookup.moduleMap[lesson.moduleId];
     const matchesModule = moduleFilter === 'all' || lesson.moduleId === moduleFilter;
     const matchesCourse =
       courseFilter === 'all' || (moduleMeta && moduleMeta.courseId === courseFilter);
     const matchesSearch =
-      lesson.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lesson.content.toLowerCase().includes(searchQuery.toLowerCase());
+      (lesson.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (lesson.content || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesModule && matchesCourse && matchesSearch;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredLessons.length / LESSONS_PER_PAGE));
+  const firstItemIndex = (currentPage - 1) * LESSONS_PER_PAGE;
+  const paginatedLessons = filteredLessons.slice(firstItemIndex, firstItemIndex + LESSONS_PER_PAGE);
+
+  if (lessonsLoading || modulesLoading || coursesLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-[50vh] flex-col items-center justify-center gap-4 text-destructive">
+        <AlertCircle className="h-8 w-8" />
+        <p>Error loading lessons: {error.message}</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
@@ -67,7 +100,7 @@ export default function LessonsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Courses</SelectItem>
-              {dummyCourses.map((course) => (
+              {courses.map((course) => (
                 <SelectItem key={course.id} value={course.id}>
                   {course.title}
                 </SelectItem>
@@ -81,7 +114,7 @@ export default function LessonsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Modules</SelectItem>
-              {dummyModules.map((module) => (
+              {modules.map((module) => (
                 <SelectItem key={module.id} value={module.id}>
                   {module.title}
                 </SelectItem>
@@ -102,37 +135,48 @@ export default function LessonsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredLessons.map((lesson) => {
-            const moduleMeta = metaLookup.moduleMap[lesson.moduleId];
-            const courseTitle = moduleMeta ? metaLookup.courseMap[moduleMeta.courseId] : '—';
-            return (
-              <Card key={lesson.id} className="hover:border-primary/40 transition-colors">
-                <CardHeader>
-                  <CardTitle className="text-lg">{lesson.title}</CardTitle>
-                  <CardDescription>
-                    {moduleMeta?.module} • {courseTitle}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground line-clamp-3">{lesson.content}</p>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      {lesson.duration}
-                    </span>
-                    <Badge variant="secondary">Order {lesson.order}</Badge>
-                  </div>
-                  <Link to={`/lessons/${lesson.id}`}>
-                    <Button variant="outline" className="w-full">
-                      View Lesson
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {paginatedLessons.map((lesson) => {
+              const moduleMeta = metaLookup.moduleMap[lesson.moduleId];
+              const courseTitle = moduleMeta ? metaLookup.courseMap[moduleMeta.courseId] : '—';
+              return (
+                <Card key={lesson.id} className="hover:border-primary/40 transition-colors">
+                  <CardHeader>
+                    <CardTitle className="text-lg">{lesson.title}</CardTitle>
+                    <CardDescription>
+                      {moduleMeta?.module} • {courseTitle}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground line-clamp-3">{lesson.content}</p>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        {lesson.duration}
+                      </span>
+                      <Badge variant="secondary">Order {lesson.order}</Badge>
+                    </div>
+                    <Link to={`/lessons/${lesson.id}`}>
+                      <Button variant="outline" className="w-full">
+                        View Lesson
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {filteredLessons.length > LESSONS_PER_PAGE && (
+            <Pagination
+              className="mt-8"
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          )}
+        </>
       )}
     </div>
   );

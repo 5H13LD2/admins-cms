@@ -11,13 +11,15 @@ import { formatDate } from '@/utils/formatters';
 import { useCourses } from '@/hooks/useCourses';
 import { useModules } from '@/hooks/useModules';
 import { Course } from '@/types';
+import { useToastContext } from '@/context/ToastContext';
 
 export default function CourseDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { getCourse, deleteCourse } = useCourses();
-  const { modules, fetchModules, loading: modulesLoading } = useModules(id);
+  const { modules, refresh: refreshModules, loading: modulesLoading } = useModules(id);
+  const { success, error: showError } = useToastContext();
 
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,7 @@ export default function CourseDetailsPage() {
         setLoading(true);
         const courseData = await getCourse(id);
         setCourse(courseData);
-        await fetchModules();
+        // Modules are automatically fetched by useModules hook
       } catch (err) {
         setError(err as Error);
       } finally {
@@ -39,7 +41,7 @@ export default function CourseDetailsPage() {
     };
 
     loadData();
-  }, [id, getCourse, fetchModules]);
+  }, [id, getCourse]);
 
   if (loading) {
     return (
@@ -70,11 +72,12 @@ export default function CourseDetailsPage() {
     if (!id) return;
     try {
       await deleteCourse(id);
+      success('Course deleted successfully!');
       setShowDeleteModal(false);
       navigate('/courses');
     } catch (err) {
       console.error('Error deleting course:', err);
-      // You might want to show a toast here
+      showError(err instanceof Error ? err.message : 'Failed to delete course');
     }
   };
 

@@ -3,11 +3,10 @@ import {
   doc,
   getDocs,
   getDoc,
-  addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
-  query,
-  orderBy
+  Timestamp
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Lesson } from '@/types';
@@ -17,12 +16,14 @@ export const lessonsService = {
   getByModuleId: async (courseId: string, moduleId: string): Promise<Lesson[]> => {
     try {
       const lessonsRef = collection(db, `courses/${courseId}/modules/${moduleId}/lessons`);
-      const q = query(lessonsRef, orderBy('order', 'asc'));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      const querySnapshot = await getDocs(lessonsRef);
+      const lessons = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Lesson[];
+
+      // Sort by order on client side
+      return lessons.sort((a, b) => (a.order || 0) - (b.order || 0));
     } catch (error) {
       console.error('Error getting lessons:', error);
       throw error;
@@ -44,6 +45,7 @@ export const lessonsService = {
           const lessons = lessonsSnapshot.docs.map(doc => ({
             id: doc.id,
             moduleId: moduleDoc.id,
+            courseId: courseDoc.id,
             ...doc.data()
           })) as Lesson[];
           allLessons.push(...lessons);
@@ -64,7 +66,7 @@ export const lessonsService = {
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
-        return { id: docSnap.id, moduleId, ...docSnap.data() } as Lesson;
+        return { id: docSnap.id, moduleId, courseId, ...docSnap.data() } as Lesson;
       }
       return null;
     } catch (error) {
@@ -74,14 +76,23 @@ export const lessonsService = {
   },
 
   // Create new lesson
-  create: async (courseId: string, moduleId: string, lessonData: Omit<Lesson, 'id' | 'moduleId'>): Promise<string> => {
+  create: async (courseId: string, moduleId: string, lessonData: Omit<Lesson, 'id' | 'moduleId' | 'courseId' | 'createdAt' | 'updatedAt'> & { lessonId: string }): Promise<string> => {
     try {
-      const lessonsRef = collection(db, `courses/${courseId}/modules/${moduleId}/lessons`);
-      const docRef = await addDoc(lessonsRef, {
-        ...lessonData,
-        moduleId
+      const { lessonId, ...restData } = lessonData;
+
+      // Create the lesson document with the specific lessonId as the document ID
+      const lessonDocRef = doc(db, `courses/${courseId}/modules/${moduleId}/lessons`, lessonId);
+
+      // Use setDoc to create the document with the specified ID
+      await setDoc(lessonDocRef, {
+        ...restData,
+        moduleId,
+        courseId,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
       });
-      return docRef.id;
+
+      return lessonId;
     } catch (error) {
       console.error('Error creating lesson:', error);
       throw error;
@@ -92,7 +103,10 @@ export const lessonsService = {
   update: async (courseId: string, moduleId: string, lessonId: string, lessonData: Partial<Lesson>): Promise<void> => {
     try {
       const docRef = doc(db, `courses/${courseId}/modules/${moduleId}/lessons`, lessonId);
-      await updateDoc(docRef, lessonData);
+      await updateDoc(docRef, {
+        ...lessonData,
+        updatedAt: Timestamp.now()
+      });
     } catch (error) {
       console.error('Error updating lesson:', error);
       throw error;

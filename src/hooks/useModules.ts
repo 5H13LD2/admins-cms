@@ -1,17 +1,18 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Module } from '@/types';
 import { modulesService } from '@/services/modules.service';
 
 export const useModules = (courseId?: string) => {
     const [modules, setModules] = useState<Module[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
     const fetchModules = useCallback(async () => {
-        if (!courseId) return;
         try {
             setLoading(true);
-            const data = await modulesService.getByCourseId(courseId);
+            const data = courseId
+                ? await modulesService.getByCourseId(courseId)
+                : await modulesService.getAll();
             setModules(data);
             setError(null);
         } catch (err) {
@@ -21,11 +22,15 @@ export const useModules = (courseId?: string) => {
         }
     }, [courseId]);
 
+    useEffect(() => {
+        fetchModules();
+    }, [fetchModules]);
+
     return {
         modules,
         loading,
         error,
-        fetchModules,
+        refresh: fetchModules,
         getModule: modulesService.getById,
         createModule: modulesService.create,
         updateModule: modulesService.update,

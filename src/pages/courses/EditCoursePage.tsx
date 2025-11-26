@@ -9,12 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCourses } from '@/hooks/useCourses';
 import { useAuth } from '@/hooks/useAuth';
+import { useToastContext } from '@/context/ToastContext';
 
 export default function EditCoursePage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { getCourse, updateCourse } = useCourses();
     const { user } = useAuth();
+    const { success, error: showError } = useToastContext();
     const [isLoading, setIsLoading] = useState(false);
     const [isFetching, setIsFetching] = useState(true);
     const [formData, setFormData] = useState({
@@ -48,6 +50,7 @@ export default function EditCoursePage() {
                 }
             } catch (error) {
                 console.error('Error loading course:', error);
+                showError('Failed to load course');
             } finally {
                 setIsFetching(false);
             }
@@ -60,7 +63,7 @@ export default function EditCoursePage() {
         e.preventDefault();
 
         if (!user) {
-            console.error('User must be logged in to update a course');
+            showError('User must be logged in to update a course');
             return;
         }
 
@@ -79,9 +82,11 @@ export default function EditCoursePage() {
                 CourseId: formData.CourseId,
                 CourseDetail: formData.CourseDetail,
             });
+            success('Course updated successfully!');
             navigate(`/courses/${id}`);
         } catch (error) {
             console.error('Error updating course:', error);
+            showError(error instanceof Error ? error.message : 'Failed to update course');
         } finally {
             setIsLoading(false);
         }
