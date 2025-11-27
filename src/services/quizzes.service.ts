@@ -21,7 +21,7 @@ const ROOT_COLLECTION = 'course_quiz';
 const DEFAULT_PAGE_SIZE = 10;
 
 export const quizzesService = {
-    // Get all quizzes from all modules with pagination
+    // Get all quizzes from all modules with pagination (without loading questions)
     getAll: async (pageSize: number = DEFAULT_PAGE_SIZE, lastDoc?: DocumentSnapshot): Promise<{ quizzes: Quiz[], lastDoc: DocumentSnapshot | null }> => {
         try {
             const quizzes: Quiz[] = [];
@@ -48,21 +48,8 @@ export const quizzesService = {
             for (const quizDoc of quizCollectionsSnapshot.docs) {
                 const quizData = quizDoc.data();
 
-                // Fetch all questions for this quiz
-                const questionsSnapshot = await getDocs(
-                    collection(db, `${ROOT_COLLECTION}/${quizDoc.id}/questions`)
-                );
-
-                const questions: Question[] = questionsSnapshot.docs.map((q) => ({
-                    id: q.id,
-                    ...q.data()
-                } as Question));
-
-                // If no questions, skip this quiz
-                if (questions.length === 0) continue;
-
-                // Get moduleId from first question if not in parent doc
-                const moduleId = quizData.moduleId || quizData.module_id || questions[0]?.module_id || '';
+                // Get moduleId from quiz document
+                const moduleId = quizData.moduleId || quizData.module_id || '';
 
                 // Generate title from quiz ID if not provided
                 const title = quizData.title || quizDoc.id
@@ -77,7 +64,7 @@ export const quizzesService = {
                     difficulty: quizData.difficulty || 'NORMAL',
                     timeLimit: quizData.timeLimit,
                     passingScore: quizData.passingScore || 70,
-                    questions: questions,
+                    questions: [], // Don't load questions for list view
                     createdAt: quizData.createdAt,
                     updatedAt: quizData.updatedAt
                 });

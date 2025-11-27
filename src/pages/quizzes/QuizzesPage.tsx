@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 
 import SearchBar from '@/components/common/SearchBar';
+import Pagination from '@/components/common/Pagination';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -16,6 +17,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useModules } from '@/hooks/useModules';
 import { useQuizzes } from '@/hooks/useQuizzes';
+import { useCourses } from '@/hooks/useCourses';
 
 const difficultyCopy: Record<string, { label: string; variant: 'default' | 'secondary'; color: string }> = {
   EASY: { label: 'Easy', variant: 'secondary', color: 'text-green-600' },
@@ -26,15 +28,19 @@ const difficultyCopy: Record<string, { label: string; variant: 'default' | 'seco
 export default function QuizzesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [courseFilter, setCourseFilter] = useState('all');
   const [moduleFilter, setModuleFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // Fetch modules and quizzes from Firestore
+  // Fetch courses, modules and quizzes from Firestore
+  const { courses } = useCourses();
   const { modules } = useModules();
-  const { quizzes, loading: quizzesLoading, fetchQuizzes } = useQuizzes();
+  const { quizzes, loading: quizzesLoading, hasMore, fetchQuizzes, loadMore } = useQuizzes();
 
   useEffect(() => {
-    fetchQuizzes();
-  }, [fetchQuizzes]);
+    fetchQuizzes(10, false);
+  }, []);
 
   // Map module IDs to titles
   const moduleMap = useMemo(() => {
@@ -50,7 +56,19 @@ export default function QuizzesPage() {
     return modules.filter(module => uniqueModuleIds.has(module.id));
   }, [modules, quizzes]);
 
-  // Filter quizzes by search, difficulty, and module
+  // Filter modules by selected course
+  const filteredModules = useMemo(() => {
+    if (courseFilter === 'all') return modulesWithQuizzes;
+    return modulesWithQuizzes.filter(module => module.courseId === courseFilter);
+  }, [modulesWithQuizzes, courseFilter]);
+
+  // Get unique courses that have quizzes (through their modules)
+  const coursesWithQuizzes = useMemo(() => {
+    const uniqueCourseIds = new Set(modulesWithQuizzes.map(module => module.courseId));
+    return courses.filter(course => uniqueCourseIds.has(course.id));
+  }, [courses, modulesWithQuizzes]);
+
+  // Filter quizzes by search, difficulty, course, and module
   const filteredQuizzes = useMemo(() => {
     return quizzes.filter((quiz) => {
       const matchesSearch =
@@ -58,9 +76,38 @@ export default function QuizzesPage() {
         (quiz.description ?? '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesDifficulty = difficultyFilter === 'all' || quiz.difficulty === difficultyFilter;
       const matchesModule = moduleFilter === 'all' || quiz.moduleId === moduleFilter;
-      return matchesSearch && matchesDifficulty && matchesModule;
+
+      // Check if quiz's module belongs to selected course
+      let matchesCourse = true;
+      if (courseFilter !== 'all') {
+        const quizModule = modules.find(m => m.id === quiz.moduleId);
+        matchesCourse = quizModule?.courseId === courseFilter;
+      }
+
+      return matchesSearch && matchesDifficulty && matchesModule && matchesCourse;
     });
-  }, [quizzes, searchQuery, difficultyFilter, moduleFilter]);
+  }, [quizzes, searchQuery, difficultyFilter, moduleFilter, courseFilter, modules]);
+
+  // Paginate filtered quizzes
+  const paginatedQuizzes = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredQuizzes.slice(startIndex, endIndex);
+  }, [filteredQuizzes, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredQuizzes.length / itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, difficultyFilter, courseFilter, moduleFilter]);
+
+  // Reset module filter when course filter changes
+  useEffect(() => {
+    if (courseFilter !== 'all') {
+      setModuleFilter('all');
+    }
+  }, [courseFilter]);
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
@@ -87,15 +134,17 @@ export default function QuizzesPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <SearchBar placeholder="Search quizzes..." onSearch={setSearchQuery} className="max-w-md" />
         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-          <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
-            <SelectTrigger className="md:w-48">
-              <SelectValue placeholder="Difficulty" />
+          <Select value={courseFilter} onValueChange={setCourseFilter}>
+            <SelectTrigger className="md:w-56">
+              <SelectValue placeholder="Course" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All difficulties</SelectItem>
-              <SelectItem value="EASY">Easy</SelectItem>
-              <SelectItem value="NORMAL">Normal</SelectItem>
-              <SelectItem value="HARD">Hard</SelectItem>
+              <SelectItem value="all">All courses</SelectItem>
+              {coursesWithQuizzes.map((course) => (
+                <SelectItem key={course.id} value={course.id}>
+                  {course.title}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -105,11 +154,23 @@ export default function QuizzesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All modules</SelectItem>
-              {modulesWithQuizzes.map((module) => (
+              {filteredModules.map((module) => (
                 <SelectItem key={module.id} value={module.id}>
                   {module.title}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
+            <SelectTrigger className="md:w-48">
+              <SelectValue placeholder="Difficulty" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All difficulties</SelectItem>
+              <SelectItem value="EASY">Easy</SelectItem>
+              <SelectItem value="NORMAL">Normal</SelectItem>
+              <SelectItem value="HARD">Hard</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -125,13 +186,12 @@ export default function QuizzesPage() {
                 <TableHead>Quiz</TableHead>
                 <TableHead>Module</TableHead>
                 <TableHead>Difficulty</TableHead>
-                <TableHead>Questions</TableHead>
                 <TableHead>Passing Score</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredQuizzes.map((quiz) => {
+              {paginatedQuizzes.map((quiz) => {
                 const difficultyMeta = difficultyCopy[quiz.difficulty];
                 return (
                   <TableRow key={quiz.id}>
@@ -143,7 +203,6 @@ export default function QuizzesPage() {
                     <TableCell>
                       <Badge variant={difficultyMeta.variant}>{difficultyMeta.label}</Badge>
                     </TableCell>
-                    <TableCell>{quiz.questions.length}</TableCell>
                     <TableCell>{quiz.passingScore ?? '—'}%</TableCell>
                     <TableCell className="text-right">
                       <Link to={`/quizzes/${quiz.id}`}>
@@ -155,9 +214,9 @@ export default function QuizzesPage() {
                   </TableRow>
                 );
               })}
-              {filteredQuizzes.length === 0 && !quizzesLoading && (
+              {paginatedQuizzes.length === 0 && !quizzesLoading && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
                     No quizzes found for the selected filters.
                   </TableCell>
                 </TableRow>
@@ -166,6 +225,17 @@ export default function QuizzesPage() {
           </Table>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-6 flex justify-center">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
     </div>
   );
 }
