@@ -1,6 +1,6 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Loader2, ChevronRight } from 'lucide-react';
 
 import SearchBar from '@/components/common/SearchBar';
 import { Button } from '@/components/ui/button';
@@ -31,9 +31,17 @@ export default function QuizzesPage() {
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [courseFilter, setCourseFilter] = useState('all');
   const [moduleFilter, setModuleFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
 
-  const { quizzes, loading: quizzesLoading } = useQuizzes();
+  const {
+    questions,
+    loading: quizzesLoading,
+    hasMore,
+    loadMore
+  } = useQuizzes({
+    courseId: courseFilter !== 'all' ? courseFilter : undefined,
+    moduleId: moduleFilter !== 'all' ? moduleFilter : undefined,
+    pageSize: ITEMS_PER_PAGE
+  });
   const { courses, loading: coursesLoading } = useCourses();
   const { modules, loading: modulesLoading } = useModules();
 
@@ -59,30 +67,16 @@ export default function QuizzesPage() {
     return modules.filter(module => module.courseId === courseFilter);
   }, [modules, courseFilter]);
 
-  // Filter quizzes by search, difficulty, course, and module
-  const filteredQuizzes = useMemo(() => {
-    return quizzes.filter((quiz) => {
+  // Client-side filtering for search and difficulty (since Firestore doesn't support complex queries easily)
+  const filteredQuestions = useMemo(() => {
+    return questions.filter((question) => {
       const matchesSearch =
-        quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (quiz.description ?? '').toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesDifficulty = difficultyFilter === 'all' || quiz.difficulty === difficultyFilter;
-      const matchesCourse = courseFilter === 'all' || quiz.courseId === courseFilter;
-      const matchesModule = moduleFilter === 'all' || quiz.moduleId === moduleFilter;
-      return matchesSearch && matchesDifficulty && matchesCourse && matchesModule;
+        question.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (question.explanation ?? '').toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesDifficulty = difficultyFilter === 'all' || question.difficulty === difficultyFilter;
+      return matchesSearch && matchesDifficulty;
     });
-  }, [quizzes, searchQuery, difficultyFilter, courseFilter, moduleFilter]);
-
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredQuizzes.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedQuizzes = filteredQuizzes.slice(startIndex, endIndex);
-
-  // Reset to page 1 when filters change
-  const handleFilterChange = (setter: (value: string) => void, value: string) => {
-    setter(value);
-    setCurrentPage(1);
-  };
+  }, [questions, searchQuery, difficultyFilter]);
 
   const loading = quizzesLoading || coursesLoading || modulesLoading;
 
@@ -110,17 +104,13 @@ export default function QuizzesPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <SearchBar
           placeholder="Search quizzes..."
-          onSearch={(value) => {
-            setSearchQuery(value);
-            setCurrentPage(1);
-          }}
+          onSearch={setSearchQuery}
           className="max-w-md"
         />
         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
           <Select value={courseFilter} onValueChange={(value) => {
             setCourseFilter(value);
             setModuleFilter('all');
-            setCurrentPage(1);
           }}>
             <SelectTrigger className="md:w-48">
               <SelectValue placeholder="Course" />
@@ -135,7 +125,7 @@ export default function QuizzesPage() {
             </SelectContent>
           </Select>
 
-          <Select value={difficultyFilter} onValueChange={(value) => handleFilterChange(setDifficultyFilter, value)}>
+          <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
             <SelectTrigger className="md:w-48">
               <SelectValue placeholder="Difficulty" />
             </SelectTrigger>
@@ -147,7 +137,7 @@ export default function QuizzesPage() {
             </SelectContent>
           </Select>
 
-          <Select value={moduleFilter} onValueChange={(value) => handleFilterChange(setModuleFilter, value)}>
+          <Select value={moduleFilter} onValueChange={setModuleFilter}>
             <SelectTrigger className="md:w-56">
               <SelectValue placeholder="Module" />
             </SelectTrigger>
@@ -172,34 +162,38 @@ export default function QuizzesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Quiz</TableHead>
+                <TableHead>Question</TableHead>
                 <TableHead>Course</TableHead>
                 <TableHead>Module</TableHead>
                 <TableHead>Difficulty</TableHead>
-                <TableHead>Questions</TableHead>
-                <TableHead>Passing Score</TableHead>
+                <TableHead>Correct Answer</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedQuizzes.map((quiz) => {
-                const difficultyMeta = difficultyCopy[quiz.difficulty];
-                const moduleData = moduleMap[quiz.moduleId];
+              {filteredQuestions.map((question) => {
+                const difficultyMeta = difficultyCopy[question.difficulty || 'NORMAL'];
+                const moduleData = question.module_id ? moduleMap[question.module_id] : null;
                 return (
-                  <TableRow key={quiz.id}>
+                  <TableRow key={question.id}>
                     <TableCell>
-                      <div className="font-medium text-foreground">{quiz.title}</div>
-                      <div className="text-xs text-muted-foreground">{quiz.description ?? '—'}</div>
+                      <div className="font-medium text-foreground line-clamp-2">{question.question}</div>
+                      {question.explanation && (
+                        <div className="text-xs text-muted-foreground line-clamp-1">{question.explanation}</div>
+                      )}
                     </TableCell>
-                    <TableCell>{courseMap[quiz.courseId] || '—'}</TableCell>
+                    <TableCell>{question.courseId ? courseMap[question.courseId] : '—'}</TableCell>
                     <TableCell>{moduleData?.title || '—'}</TableCell>
                     <TableCell>
                       <Badge variant={difficultyMeta.variant}>{difficultyMeta.label}</Badge>
                     </TableCell>
-                    <TableCell>{quiz.questionCount ?? 0}</TableCell>
-                    <TableCell>{quiz.passingScore ?? '—'}%</TableCell>
+                    <TableCell>
+                      {question.options && question.options[question.correctOptionIndex]
+                        ? String.fromCharCode(65 + question.correctOptionIndex)
+                        : '—'}
+                    </TableCell>
                     <TableCell className="text-right">
-                      <Link to={`/quizzes/${quiz.id}`}>
+                      <Link to={`/quizzes/${question.courseId}/${question.id}`}>
                         <Button size="sm" variant="outline">
                           View
                         </Button>
@@ -208,10 +202,10 @@ export default function QuizzesPage() {
                   </TableRow>
                 );
               })}
-              {filteredQuizzes.length === 0 && (
+              {filteredQuestions.length === 0 && !loading && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
-                    No quizzes found for the selected filters.
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                    No quiz questions found for the selected filters.
                   </TableCell>
                 </TableRow>
               )}
@@ -220,44 +214,32 @@ export default function QuizzesPage() {
         )}
       </div>
 
-      {!loading && filteredQuizzes.length > 0 && (
+      {!loading && filteredQuestions.length > 0 && (
         <div className="flex items-center justify-between mt-4">
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1} to {Math.min(endIndex, filteredQuizzes.length)} of {filteredQuizzes.length} quizzes
+            Showing {filteredQuestions.length} question{filteredQuestions.length !== 1 ? 's' : ''}
+            {hasMore && ' (more available)'}
           </div>
-          <div className="flex items-center gap-2">
+          {hasMore && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
+              onClick={loadMore}
+              disabled={quizzesLoading}
             >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
+              {quizzesLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <ChevronRight className="h-4 w-4 mr-2" />
+                  Load More
+                </>
+              )}
             </Button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <Button
-                  key={page}
-                  variant={currentPage === page ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setCurrentPage(page)}
-                  className="min-w-[40px]"
-                >
-                  {page}
-                </Button>
-              ))}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          )}
         </div>
       )}
     </div>

@@ -1,400 +1,240 @@
-import { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCourses } from '@/hooks/useCourses';
+import { Card } from '@/components/ui/card';
+import { useQuestion, useQuestionActions } from '@/hooks/useQuizzes';
 import { useModules } from '@/hooks/useModules';
-import { useQuizzes } from '@/hooks/useQuizzes';
-import { QuestionFormData, Question } from '@/types';
 import { useToast } from '@/hooks/useToast';
-import { quizzesService } from '@/services/quizzes.service';
 
 export default function EditQuizPage() {
-    const { quizId } = useParams<{ quizId: string }>();
-    const navigate = useNavigate();
-    const { success, error } = useToast();
-    const { courses } = useCourses();
-    const { modules } = useModules();
-    const { updateQuizWithQuestions } = useQuizzes();
+  const { courseId, questionId } = useParams<{ courseId: string; questionId: string }>();
+  const navigate = useNavigate();
+  const toast = useToast();
 
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [courseId, setCourseId] = useState('');
-    const [moduleId, setModuleId] = useState('');
-    const [formData, setFormData] = useState({
-        title: '',
-        difficulty: 'NORMAL' as 'EASY' | 'NORMAL' | 'HARD',
-        passingScore: '',
-        description: '',
-    });
-    const [questions, setQuestions] = useState<QuestionFormData[]>([]);
+  const { question, loading: questionLoading, refresh } = useQuestion(courseId, questionId);
+  const { updateQuestion: updateQuestionMutation, loading: updateLoading } = useQuestionActions(courseId || '');
+  const { modules } = useModules();
 
-    const filteredModules = modules.filter(m => m.courseId === courseId);
+  const [questionText, setQuestionText] = useState('');
+  const [options, setOptions] = useState<string[]>(['', '', '', '']);
+  const [correctOptionIndex, setCorrectOptionIndex] = useState(0);
+  const [explanation, setExplanation] = useState('');
+  const [moduleId, setModuleId] = useState('');
+  const [difficulty, setDifficulty] = useState<'EASY' | 'NORMAL' | 'HARD'>('NORMAL');
+  const [order, setOrder] = useState(0);
 
-    // Fetch existing quiz data
-    useEffect(() => {
-        const fetchQuizData = async () => {
-            if (!quizId) return;
+  // Load question data when available
+  useEffect(() => {
+    if (question) {
+      setQuestionText(question.question);
+      setOptions(question.options || ['', '', '', '']);
+      setCorrectOptionIndex(question.correctOptionIndex);
+      setExplanation(question.explanation || '');
+      setModuleId(question.module_id || '');
+      setDifficulty(question.difficulty || 'NORMAL');
+      setOrder(question.order || 0);
+    }
+  }, [question]);
 
-            try {
-                setIsLoading(true);
-                const quiz = await quizzesService.getById(quizId);
+  // Filter modules by course
+  const filteredModules = modules.filter(module => module.courseId === courseId);
 
-                if (quiz) {
-                    setCourseId(quiz.courseId);
-                    setModuleId(quiz.moduleId);
-                    setFormData({
-                        title: quiz.title,
-                        difficulty: quiz.difficulty,
-                        passingScore: quiz.passingScore?.toString() || '',
-                        description: quiz.description || '',
-                    });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-                    // Convert existing questions to form data
-                    const existingQuestions: QuestionFormData[] = quiz.questions?.map((q: Question) => ({
-                        question: q.question,
-                        options: q.options,
-                        correctOptionIndex: q.correctOptionIndex,
-                        explanation: q.explanation || '',
-                        order: q.order,
-                    })) || [];
+    if (!courseId || !questionId) return;
 
-                    setQuestions(existingQuestions);
-                }
-            } catch (err) {
-                console.error('Error fetching quiz:', err);
-                error('Failed to load quiz data');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchQuizData();
-    }, [quizId]);
-
-    const handleChange = (field: string, value: string) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    };
-
-    const handleQuestionChange = (index: number, field: keyof QuestionFormData, value: any) => {
-        const newQuestions = [...questions];
-        newQuestions[index] = { ...newQuestions[index], [field]: value };
-        setQuestions(newQuestions);
-    };
-
-    const handleOptionChange = (questionIndex: number, optionIndex: number, value: string) => {
-        const newQuestions = [...questions];
-        const newOptions = [...newQuestions[questionIndex].options];
-        newOptions[optionIndex] = value;
-        newQuestions[questionIndex] = { ...newQuestions[questionIndex], options: newOptions };
-        setQuestions(newQuestions);
-    };
-
-    const addQuestion = () => {
-        setQuestions([
-            ...questions,
-            { question: '', options: ['', '', '', ''], correctOptionIndex: 0, explanation: '', order: questions.length + 1 }
-        ]);
-    };
-
-    const removeQuestion = (index: number) => {
-        const newQuestions = questions.filter((_, i) => i !== index);
-        // Update order
-        newQuestions.forEach((q, i) => q.order = i + 1);
-        setQuestions(newQuestions);
-    };
-
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        if (!courseId || !moduleId) {
-            error('Please select both course and module');
-            return;
-        }
-
-        if (questions.length === 0) {
-            error('Please add at least one question');
-            return;
-        }
-
-        // Validate all questions have required fields
-        for (let i = 0; i < questions.length; i++) {
-            const q = questions[i];
-            if (!q.question.trim()) {
-                error(`Question ${i + 1} is missing the question text`);
-                return;
-            }
-            if (q.options.some(opt => !opt.trim())) {
-                error(`Question ${i + 1} has empty options`);
-                return;
-            }
-        }
-
-        if (!quizId) {
-            error('Quiz ID is missing');
-            return;
-        }
-
-        setIsSubmitting(true);
-        try {
-            await updateQuizWithQuestions(quizId, {
-                courseId,
-                moduleId,
-                title: formData.title,
-                description: formData.description,
-                difficulty: formData.difficulty,
-                passingScore: formData.passingScore ? parseInt(formData.passingScore) : undefined,
-                questions
-            });
-
-            success('Quiz updated successfully');
-            navigate(`/quizzes/${quizId}`);
-        } catch (err) {
-            console.error('Error updating quiz:', err);
-            error('Failed to update quiz');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        );
+    // Validation
+    if (!questionText.trim()) {
+      toast.error('Question text is required');
+      return;
     }
 
+    if (options.some(opt => !opt.trim())) {
+      toast.error('All four options must be filled');
+      return;
+    }
+
+    if (!moduleId) {
+      toast.error('Module is required');
+      return;
+    }
+
+    try {
+      await updateQuestionMutation(questionId, {
+        question: questionText,
+        options,
+        correctOptionIndex,
+        explanation,
+        module_id: moduleId,
+        difficulty,
+        order
+      });
+
+      toast.success('Question updated successfully');
+      navigate('/quizzes/manage');
+    } catch (error) {
+      console.error('Error updating question:', error);
+      toast.error('Failed to update question. Please try again.');
+    }
+  };
+
+  const handleOptionChange = (index: number, value: string) => {
+    const newOptions = [...options];
+    newOptions[index] = value;
+    setOptions(newOptions);
+  };
+
+  if (questionLoading) {
     return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!question) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <p className="text-muted-foreground mb-4">Question not found</p>
+        <Button onClick={() => navigate('/quizzes/manage')}>Back to Quiz Management</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="animate-in fade-in zoom-in-95 duration-500 max-w-4xl mx-auto">
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div>
-            <div className="flex items-center gap-4 mb-6">
-                <Link to={`/quizzes/${quizId}`}>
-                    <Button variant="ghost" size="icon">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                </Link>
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Edit Quiz</h1>
-                    <p className="text-gray-500 mt-1">Update quiz details and questions</p>
-                </div>
+          <h1 className="text-3xl font-bold text-foreground">Edit Quiz Question</h1>
+          <p className="text-muted-foreground mt-1">Update question details</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <Card className="p-6">
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="questionText">Question *</Label>
+              <Textarea
+                id="questionText"
+                value={questionText}
+                onChange={(e) => setQuestionText(e.target.value)}
+                placeholder="Enter your question here"
+                rows={3}
+                required
+              />
             </div>
 
-            <form className="space-y-6" onSubmit={handleSubmit}>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Quiz Details</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="course">Course *</Label>
-                                <Select
-                                    value={courseId}
-                                    onValueChange={(value) => {
-                                        setCourseId(value);
-                                        setModuleId('');
-                                    }}
-                                >
-                                    <SelectTrigger id="course">
-                                        <SelectValue placeholder="Select course" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {courses.map((course) => (
-                                            <SelectItem key={course.id} value={course.id}>
-                                                {course.title}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="module">Module *</Label>
-                                <Select
-                                    value={moduleId}
-                                    onValueChange={setModuleId}
-                                    disabled={!courseId}
-                                >
-                                    <SelectTrigger id="module">
-                                        <SelectValue placeholder="Select module" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {filteredModules.map((module) => (
-                                            <SelectItem key={module.id} value={module.id}>
-                                                {module.title}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="title">Quiz Title *</Label>
-                                <Input
-                                    id="title"
-                                    required
-                                    placeholder="e.g., Java Basics Quiz"
-                                    value={formData.title}
-                                    onChange={(event) => handleChange('title', event.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="difficulty">Difficulty</Label>
-                                <Select
-                                    value={formData.difficulty}
-                                    onValueChange={(value) => handleChange('difficulty', value)}
-                                >
-                                    <SelectTrigger id="difficulty">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="EASY">Easy</SelectItem>
-                                        <SelectItem value="NORMAL">Normal</SelectItem>
-                                        <SelectItem value="HARD">Hard</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="passingScore">Passing Score (%)</Label>
-                            <Input
-                                id="passingScore"
-                                type="number"
-                                min="0"
-                                max="100"
-                                placeholder="75"
-                                value={formData.passingScore}
-                                onChange={(event) => handleChange('passingScore', event.target.value)}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="description">Description</Label>
-                            <Textarea
-                                id="description"
-                                rows={3}
-                                placeholder="Describe what this quiz covers..."
-                                value={formData.description}
-                                onChange={(event) => handleChange('description', event.target.value)}
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <CardTitle>Questions</CardTitle>
-                            <Button type="button" onClick={addQuestion} variant="outline" size="sm">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Question
-                            </Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6 max-h-[500px] overflow-y-auto pr-2">
-                        {questions.map((question, qIndex) => (
-                            <div key={qIndex} className="border rounded-lg p-4 space-y-4">
-                                <div className="flex items-start justify-between">
-                                    <Label className="text-lg font-semibold">Question {qIndex + 1}</Label>
-                                    {questions.length > 1 && (
-                                        <Button
-                                            type="button"
-                                            onClick={() => removeQuestion(qIndex)}
-                                            variant="ghost"
-                                            size="sm"
-                                        >
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor={`question-${qIndex}`}>Question Text *</Label>
-                                    <Textarea
-                                        id={`question-${qIndex}`}
-                                        required
-                                        placeholder="Enter your question here..."
-                                        value={question.question}
-                                        onChange={(e) => handleQuestionChange(qIndex, 'question', e.target.value)}
-                                        rows={2}
-                                    />
-                                </div>
-
-                                <div className="space-y-3">
-                                    <Label>Options *</Label>
-                                    {question.options.map((option, oIndex) => (
-                                        <div key={oIndex} className="flex items-center gap-2">
-                                            <span className="text-sm font-medium w-6">{String.fromCharCode(65 + oIndex)}.</span>
-                                            <Input
-                                                required
-                                                placeholder={`Option ${String.fromCharCode(65 + oIndex)}`}
-                                                value={option}
-                                                onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor={`correct-${qIndex}`}>Correct Answer *</Label>
-                                    <Select
-                                        value={question.correctOptionIndex.toString()}
-                                        onValueChange={(value) => handleQuestionChange(qIndex, 'correctOptionIndex', parseInt(value))}
-                                    >
-                                        <SelectTrigger id={`correct-${qIndex}`}>
-                                            <SelectValue placeholder="Select correct answer" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {question.options.map((option, oIndex) => (
-                                                <SelectItem key={oIndex} value={oIndex.toString()}>
-                                                    {String.fromCharCode(65 + oIndex)}. {option || `Option ${String.fromCharCode(65 + oIndex)}`}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor={`explanation-${qIndex}`}>Explanation (Optional)</Label>
-                                    <Textarea
-                                        id={`explanation-${qIndex}`}
-                                        placeholder="Explain why this answer is correct..."
-                                        value={question.explanation}
-                                        onChange={(e) => handleQuestionChange(qIndex, 'explanation', e.target.value)}
-                                        rows={2}
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-
-                <div className="flex gap-4">
-                    <Button type="submit" disabled={isSubmitting || !courseId || !moduleId}>
-                        {isSubmitting ? (
-                            <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Updating...
-                            </>
-                        ) : (
-                            'Update Quiz'
-                        )}
-                    </Button>
-                    <Link to={`/quizzes/${quizId}`}>
-                        <Button type="button" variant="outline">
-                            Cancel
-                        </Button>
-                    </Link>
+            <div className="space-y-4">
+              <Label>Answer Options *</Label>
+              {options.map((option, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <Input
+                      value={option}
+                      onChange={(e) => handleOptionChange(index, e.target.value)}
+                      placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                      required
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="correctAnswer"
+                      checked={correctOptionIndex === index}
+                      onChange={() => setCorrectOptionIndex(index)}
+                      className="h-4 w-4 cursor-pointer"
+                    />
+                    <Label className="text-sm text-muted-foreground cursor-pointer">
+                      Correct
+                    </Label>
+                  </div>
                 </div>
-            </form>
-        </div>
-    );
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="module">Module *</Label>
+                <Select value={moduleId} onValueChange={setModuleId} required>
+                  <SelectTrigger id="module">
+                    <SelectValue placeholder="Select module" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredModules.map((module) => (
+                      <SelectItem key={module.id} value={module.id}>
+                        {module.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="difficulty">Difficulty *</Label>
+                <Select value={difficulty} onValueChange={(value: any) => setDifficulty(value)} required>
+                  <SelectTrigger id="difficulty">
+                    <SelectValue placeholder="Select difficulty" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EASY">Easy</SelectItem>
+                    <SelectItem value="NORMAL">Normal</SelectItem>
+                    <SelectItem value="HARD">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="order">Order</Label>
+                <Input
+                  id="order"
+                  type="number"
+                  min="0"
+                  value={order}
+                  onChange={(e) => setOrder(parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="explanation">Explanation (Optional)</Label>
+              <Textarea
+                id="explanation"
+                value={explanation}
+                onChange={(e) => setExplanation(e.target.value)}
+                placeholder="Explain why this is the correct answer"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateLoading}>
+                {updateLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </form>
+    </div>
+  );
 }
