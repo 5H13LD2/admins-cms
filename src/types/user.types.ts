@@ -35,6 +35,11 @@ export interface User {
   quizzesTaken?: number;
   technicalAssessmentsCompleted?: number;
   totalXP?: number;
+  assessmentScores?: Record<string, {
+    score: number;
+    passed: boolean;
+    completedAt: number;
+  }>;
 }
 
 export interface ChallengeStats {

@@ -49,7 +49,8 @@ export const usersService = {
           lastName: userData.lastName,
           avatar: userData.avatar || userData.profilePhotoBase64,
           bio: userData.bio,
-          role: userData.role
+          role: userData.role,
+          assessmentScores: userData.assessmentScores || {}
         } as User);
       });
 
@@ -90,7 +91,8 @@ export const usersService = {
           lastName: userData.lastName,
           avatar: userData.avatar || userData.profilePhotoBase64,
           bio: userData.bio,
-          role: userData.role
+          role: userData.role,
+          assessmentScores: userData.assessmentScores || {}
         } as User;
       }
       return null;
@@ -139,7 +141,8 @@ export const usersService = {
         lastName: userData.lastName,
         avatar: userData.avatar || userData.profilePhotoBase64,
         bio: userData.bio,
-        role: userData.role
+        role: userData.role,
+        assessmentScores: userData.assessmentScores || {}
       } as User;
     } catch (error) {
       console.error('❌ Failed to find user by email:', { email, error });
@@ -381,6 +384,283 @@ export const usersService = {
     } catch (error) {
       console.error('Error getting user course progress:', error);
       throw error;
+    }
+  },
+
+  // Unenroll user from course
+  unenrollUserFromCourse: async (userEmail: string, courseName: string) => {
+    try {
+      const result = await runTransaction(db, async (transaction) => {
+        // Get user by email
+        const userQuery = query(
+          collection(db, USERS_COLLECTION),
+          where('email', '==', userEmail),
+          limit(1)
+        );
+        const userSnapshot = await getDocs(userQuery);
+
+        if (userSnapshot.empty) {
+          throw new Error('User not found');
+        }
+
+        const userDoc = userSnapshot.docs[0];
+        const userData = userDoc.data();
+
+        // Get course by name
+        const courseQuery = query(
+          collection(db, COURSES_COLLECTION),
+          where('courseName', '==', courseName),
+          limit(1)
+        );
+        const courseSnapshot = await getDocs(courseQuery);
+
+        if (courseSnapshot.empty) {
+          throw new Error('Course not found');
+        }
+
+        const courseDoc = courseSnapshot.docs[0];
+        const courseData = courseDoc.data();
+
+        // Remove course from user's enrolled courses
+        const userCourses = userData.courseTaken || [];
+        const updatedUserCourses = userCourses.filter(
+          (c: any) => c.courseName !== courseName
+        );
+
+        transaction.update(userDoc.ref, {
+          courseTaken: updatedUserCourses,
+          lastUpdated: serverTimestamp()
+        });
+
+        // Remove user from course's enrolled users
+        const enrolledUsers = courseData.enrolledUsers || [];
+        const updatedEnrolledUsers = enrolledUsers.filter(
+          (email: string) => email !== userEmail
+        );
+        transaction.update(courseDoc.ref, {
+          enrolledUsers: updatedEnrolledUsers,
+          lastUpdated: serverTimestamp()
+        });
+
+        return {
+          userEmail,
+          courseName,
+          success: true,
+          message: 'User successfully unenrolled from course'
+        };
+      });
+
+      return result;
+    } catch (error) {
+      console.error('❌ Course unenrollment failed:', { userEmail, courseName, error });
+      throw new Error(error instanceof Error ? error.message : 'Failed to unenroll user from course');
+    }
+  },
+
+  // Add or update user assessment score
+  addOrUpdateAssessment: async (userId: string, assessmentId: string, score: number, passed: boolean) => {
+    try {
+      const userRef = doc(db, USERS_COLLECTION, userId);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        throw new Error('User not found');
+      }
+
+      const userData = userSnap.data();
+      
+      // Get or create assessment scores object
+      const assessmentScores = userData.assessmentScores || {};
+      const wasAlreadyPassed = assessmentScores[assessmentId]?.passed;
+      assessmentScores[assessmentId] = {
+        score,
+        passed,
+        completedAt: Date.now()
+      };
+
+      // Update technical assessments count if passed
+      const currentCount = userData.technicalAssessmentsCompleted || 0;
+      const newCount = passed && !wasAlreadyPassed 
+        ? currentCount + 1 
+        : (!passed && wasAlreadyPassed && currentCount > 0)
+        ? currentCount - 1
+        : currentCount;
+
+      await updateDoc(userRef, {
+        assessmentScores,
+        technicalAssessmentsCompleted: newCount,
+        lastUpdated: serverTimestamp()
+      });
+
+      return {
+        userId,
+        assessmentId,
+        score,
+        passed,
+        success: true
+      };
+    } catch (error) {
+      console.error('❌ Failed to add/update assessment:', { userId, assessmentId, error });
+      throw new Error('Failed to add/update assessment');
+    }
+  },
+
+  // Delete user assessment
+  deleteAssessment: async (userId: string, assessmentId: string) => {
+    try {
+      const userRef = doc(db, USERS_COLLECTION, userId);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        throw new Error('User not found');
+      }
+
+      const userData = userSnap.data();
+      const assessmentScores = userData.assessmentScores || {};
+      
+      // Check if assessment was passed to adjust count
+      const wasPassed = assessmentScores[assessmentId]?.passed;
+      const currentCount = userData.technicalAssessmentsCompleted || 0;
+      const newCount = wasPassed ? Math.max(0, currentCount - 1) : currentCount;
+
+      // Remove assessment from scores
+      delete assessmentScores[assessmentId];
+
+      await updateDoc(userRef, {
+        assessmentScores,
+        technicalAssessmentsCompleted: newCount,
+        lastUpdated: serverTimestamp()
+      });
+
+      return {
+        userId,
+        assessmentId,
+        success: true,
+        message: 'Assessment deleted successfully'
+      };
+    } catch (error) {
+      console.error('❌ Failed to delete assessment:', { userId, assessmentId, error });
+      throw new Error('Failed to delete assessment');
+    }
+  },
+
+  // Update user XP
+  updateUserXP: async (userId: string, xpToAdd: number) => {
+    try {
+      const userRef = doc(db, USERS_COLLECTION, userId);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        throw new Error('User not found');
+      }
+
+      const userData = userSnap.data();
+      const currentXP = userData.totalXP || 0;
+      const newXP = currentXP + xpToAdd;
+
+      await updateDoc(userRef, {
+        totalXP: Math.max(0, newXP),
+        lastUpdated: serverTimestamp()
+      });
+
+      return {
+        userId,
+        newXP: Math.max(0, newXP),
+        xpAdded: xpToAdd,
+        success: true
+      };
+    } catch (error) {
+      console.error('❌ Failed to update user XP:', { userId, error });
+      throw new Error('Failed to update user XP');
+    }
+  },
+
+  // Add achievement to user
+  addAchievement: async (userId: string, achievementName: string) => {
+    try {
+      const userRef = doc(db, USERS_COLLECTION, userId);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        throw new Error('User not found');
+      }
+
+      const userData = userSnap.data();
+      const achievements = userData.achievementsUnlocked || [];
+      
+      if (achievements.includes(achievementName)) {
+        throw new Error('Achievement already unlocked');
+      }
+
+      await updateDoc(userRef, {
+        achievementsUnlocked: [...achievements, achievementName],
+        lastUpdated: serverTimestamp()
+      });
+
+      return {
+        userId,
+        achievementName,
+        success: true
+      };
+    } catch (error) {
+      console.error('❌ Failed to add achievement:', { userId, achievementName, error });
+      throw new Error(error instanceof Error ? error.message : 'Failed to add achievement');
+    }
+  },
+
+  // Remove achievement from user
+  removeAchievement: async (userId: string, achievementName: string) => {
+    try {
+      const userRef = doc(db, USERS_COLLECTION, userId);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        throw new Error('User not found');
+      }
+
+      const userData = userSnap.data();
+      const achievements = userData.achievementsUnlocked || [];
+      const updatedAchievements = achievements.filter((a: string) => a !== achievementName);
+
+      await updateDoc(userRef, {
+        achievementsUnlocked: updatedAchievements,
+        lastUpdated: serverTimestamp()
+      });
+
+      return {
+        userId,
+        achievementName,
+        success: true
+      };
+    } catch (error) {
+      console.error('❌ Failed to remove achievement:', { userId, achievementName, error });
+      throw new Error('Failed to remove achievement');
+    }
+  },
+
+  // Update user badge
+  updateUserBadge: async (userId: string, badge: string) => {
+    try {
+      const userRef = doc(db, USERS_COLLECTION, userId);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        throw new Error('User not found');
+      }
+
+      await updateDoc(userRef, {
+        currentBadge: badge,
+        lastUpdated: serverTimestamp()
+      });
+
+      return {
+        userId,
+        badge,
+        success: true
+      };
+    } catch (error) {
+      console.error('❌ Failed to update user badge:', { userId, badge, error });
+      throw new Error('Failed to update user badge');
     }
   }
 };

@@ -34,6 +34,7 @@ export interface QuizFormData {
   description?: string;
   difficulty: 'EASY' | 'NORMAL' | 'HARD';
   passingScore?: number;
+  timeLimit?: number;
   questions: QuestionFormData[];
 }
 

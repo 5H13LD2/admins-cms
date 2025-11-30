@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Mail, Users, Award, BookOpen } from 'lucide-react';
+import { ArrowLeft, Mail, Users, Award, BookOpen, Settings } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,12 +9,14 @@ import { useUsers } from '@/hooks/useUsers';
 import { formatDate } from '@/utils/formatters';
 import { formatBase64Image } from '@/utils/helpers';
 import { User } from '@/types';
+import { UserManagementModal } from '@/components/UserManagementModal';
 
 export default function UserDetailsPage() {
   const { userId } = useParams<{ userId: string }>();
   const { getUser } = useUsers();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [managementModalOpen, setManagementModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -32,6 +34,17 @@ export default function UserDetailsPage() {
     };
     fetchUser();
   }, [userId, getUser]);
+
+  const handleUserUpdated = async () => {
+    if (userId) {
+      try {
+        const userData = await getUser(userId);
+        setUser(userData);
+      } catch (error) {
+        console.error('Error refreshing user:', error);
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -79,6 +92,13 @@ export default function UserDetailsPage() {
           </h1>
           <p className="text-muted-foreground mt-1">@{user.username}</p>
         </div>
+        <Button
+          onClick={() => setManagementModalOpen(true)}
+          variant="outline"
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          Manage User
+        </Button>
         <Badge variant={user.status === 'online' ? 'default' : 'secondary'}>
           {user.status || 'offline'}
         </Badge>
@@ -254,6 +274,13 @@ export default function UserDetailsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <UserManagementModal
+        user={user}
+        open={managementModalOpen}
+        onClose={() => setManagementModalOpen(false)}
+        onUserUpdated={handleUserUpdated}
+      />
     </div>
   );
 }
