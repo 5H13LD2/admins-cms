@@ -29,3 +29,25 @@ export const debounce = <T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait);
   };
 };
+
+/**
+ * Formats a base64 string to a valid data URL for images
+ * Handles cases where the base64 string may or may not have the data URL prefix
+ */
+export const formatBase64Image = (base64String: string | undefined): string | undefined => {
+  if (!base64String) return undefined;
+
+  // If it already has the data URL prefix, return as-is
+  if (base64String.startsWith('data:image/')) {
+    return base64String;
+  }
+
+  // If it's a regular URL (http/https), return as-is
+  if (base64String.startsWith('http://') || base64String.startsWith('https://')) {
+    return base64String;
+  }
+
+  // Otherwise, assume it's a raw base64 string and add the prefix
+  // Default to jpeg, but you can make this more sophisticated if needed
+  return `data:image/jpeg;base64,${base64String}`;
+};
