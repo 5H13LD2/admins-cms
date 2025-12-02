@@ -26,10 +26,16 @@ export const LoginForm = () => {
         } catch (err: any) {
             console.error('Login error:', err);
 
-            // Handle Firebase auth errors
-            const errorMessage = err.code
-                ? getFirebaseErrorMessage(err.code)
-                : 'An error occurred during login. Please try again.';
+            // Handle Firebase auth errors and custom errors
+            let errorMessage: string;
+
+            if (err.message && err.message.includes('Access denied')) {
+                errorMessage = err.message;
+            } else if (err.code) {
+                errorMessage = getFirebaseErrorMessage(err.code);
+            } else {
+                errorMessage = 'An error occurred during login. Please try again.';
+            }
 
             setError(errorMessage);
         } finally {

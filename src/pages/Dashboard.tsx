@@ -26,7 +26,7 @@ export default function Dashboard() {
       bgColor: 'bg-green-100'
     },
     {
-      title: 'Quizzes',
+      title: 'Assesments',
       value: '89',
       icon: HelpCircle,
       color: 'text-purple-600',
