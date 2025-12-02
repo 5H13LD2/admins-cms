@@ -42,10 +42,7 @@ export const LoginForm = () => {
         }
     };
 
-    const socialSignIn = async (provider: string) => {
-        // Placeholder for social login integration
-        setError('Social login is not configured.');
-    };
+
 
     const getFirebaseErrorMessage = (code: string): string => {
         switch (code) {
@@ -80,25 +77,7 @@ export const LoginForm = () => {
                 )}
 
                 <div className="space-y-4">
-                    <button
-                        type="button"
-                        onClick={() => socialSignIn('google')}
-                        className="w-full flex items-center justify-center gap-3 border rounded-md py-2 bg-white hover:bg-slate-50 transition-colors"
-                    >
-                        <svg className="w-5 h-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M533.5 278.4c0-17.6-1.6-34.6-4.6-51.1H272v96.8h146.9c-6.3 34.1-25.2 62.9-53.8 82v68.1h86.9c50.8-46.8 82.5-115.9 82.5-195.8z" fill="#4285f4" />
-                            <path d="M272 544.3c72.6 0 133.6-24.1 178.1-65.4l-86.9-68.1c-24.2 16.3-55.4 25.9-91.2 25.9-69.9 0-129.2-47.2-150.4-110.5H33.9v69.4C77.8 485.2 168.4 544.3 272 544.3z" fill="#34a853" />
-                            <path d="M121.6 320.9c-10.8-32.8-10.8-68.2 0-101l-69.4-69.4C25.6 194.7 0 232.8 0 272s25.6 77.3 52.2 121.9l69.4-73z" fill="#fbbc04" />
-                            <path d="M272 107.7c39.4 0 75 13.6 102.9 40.4l77.3-77.3C405.6 25.3 345.6 0 272 0 168.4 0 77.8 59.1 33.9 147.7l69.4 69.4C142.8 155 202.1 107.7 272 107.7z" fill="#ea4335" />
-                        </svg>
-                        <span className="text-sm font-medium">Continue with Google</span>
-                    </button>
 
-                    <div className="flex items-center gap-3">
-                        <div className="flex-1 h-px bg-border" />
-                        <div className="text-xs text-muted-foreground uppercase">or</div>
-                        <div className="flex-1 h-px bg-border" />
-                    </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
