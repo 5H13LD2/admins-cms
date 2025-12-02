@@ -13,11 +13,14 @@ interface QuizFormProps {
 }
 
 const defaultValues: QuizFormData = {
+  courseId: '',
+  moduleId: '',
   title: '',
   description: '',
   difficulty: 'NORMAL',
   timeLimit: 20,
   passingScore: 70,
+  questions: [],
 };
 
 export default function QuizForm({ initialValues, onSubmit, isSubmitting }: QuizFormProps) {

@@ -14,6 +14,9 @@ interface LessonFormProps {
 const defaultValues: LessonFormData = {
   title: '',
   content: '',
+  explanation: '',
+  codeExample: '',
+  number: '',
   duration: '',
   order: 1,
   videoUrl: '',

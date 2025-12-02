@@ -10,6 +10,8 @@ interface DetailedAssessmentCardProps {
 const typeIconMap: Record<TechnicalAssessment['type'], JSX.Element> = {
   code_fix: <Code2 className="h-5 w-5 text-primary" />,
   sql_query: <Database className="h-5 w-5 text-primary" />,
+  brokenCode: <Code2 className="h-5 w-5 text-primary" />,
+  sql: <Database className="h-5 w-5 text-primary" />,
 };
 
 export default function DetailedAssessmentCard({ assessment }: DetailedAssessmentCardProps) {

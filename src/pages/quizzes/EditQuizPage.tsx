@@ -17,7 +17,7 @@ export default function EditQuizPage() {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const { question, loading: questionLoading, refresh } = useQuestion(courseId, questionId);
+  const { question, loading: questionLoading } = useQuestion(courseId, questionId);
   const { updateQuestion: updateQuestionMutation, loading: updateLoading } = useQuestionActions(courseId || '');
   const { modules } = useModules();
 

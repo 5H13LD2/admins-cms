@@ -18,7 +18,7 @@ export default function CourseDetailsPage() {
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { getCourse, deleteCourse } = useCourses();
-  const { modules, refresh: refreshModules, loading: modulesLoading } = useModules(id);
+  const { modules, loading: modulesLoading } = useModules(id);
   const { success, error: showError } = useToastContext();
 
   const [course, setCourse] = useState<Course | null>(null);

@@ -1,6 +1,6 @@
 import { type Course, type User } from '@/types';
 
-export interface DashboardUserRow {
+export interface DashboardUserRow extends Record<string, unknown> {
   id: string;
   name: string;
   email: string;
@@ -10,7 +10,7 @@ export interface DashboardUserRow {
   streak: number;
 }
 
-export interface DashboardQuizRow {
+export interface DashboardQuizRow extends Record<string, unknown> {
   id: string;
   title: string;
   module: string;
@@ -19,7 +19,7 @@ export interface DashboardQuizRow {
   passRate: number;
 }
 
-export interface DashboardAssessmentRow {
+export interface DashboardAssessmentRow extends Record<string, unknown> {
   id: string;
   title: string;
   type: 'code_fix' | 'sql_query';
@@ -29,7 +29,7 @@ export interface DashboardAssessmentRow {
   passRate: number;
 }
 
-export interface DashboardLeaderboardRow {
+export interface DashboardLeaderboardRow extends Record<string, unknown> {
   rank: number;
   username: string;
   totalPoints: number;

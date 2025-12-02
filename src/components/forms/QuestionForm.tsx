@@ -16,6 +16,7 @@ const defaultValues: QuestionFormData = {
   options: ['', '', '', ''],
   correctOptionIndex: 0,
   explanation: '',
+  order: 1,
 };
 
 export default function QuestionForm({ initialValues, onSubmit, isSubmitting }: QuestionFormProps) {

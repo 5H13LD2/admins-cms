@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCourses } from '@/hooks/useCourses';
 import { modulesService } from '@/services/modules.service';
-import { Course, Module } from '@/types';
+import { Course } from '@/types';
 import { useToastContext } from '@/context/ToastContext';
 
 export default function EditModulePage() {

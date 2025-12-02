@@ -5,7 +5,11 @@
       "Bash(git add:*)",
       "Bash(git stash drop:*)",
       "Bash(netstat:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(npm install:*)",
+      "Bash(vercel --prod:*)",
+      "Bash(npm run build:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

@@ -33,7 +33,7 @@ export default function QuizDetailsPage() {
   const toast = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const { question, loading, refresh } = useQuestion(courseId, questionId);
+  const { question, loading } = useQuestion(courseId, questionId);
   const { deleteQuestion, loading: deleteLoading } = useQuestionActions(courseId || '');
   const { courses } = useCourses();
   const { modules } = useModules();

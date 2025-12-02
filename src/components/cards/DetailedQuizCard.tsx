@@ -20,11 +20,11 @@ export default function DetailedQuizCard({ quiz }: DetailedQuizCardProps) {
         <div className="mb-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
           <span>Time limit: {quiz.timeLimit ? `${quiz.timeLimit} mins` : 'None'}</span>
           <span>Passing score: {quiz.passingScore ?? 0}%</span>
-          <span>{quiz.questions.length} questions</span>
+          <span>{quiz.questions?.length ?? 0} questions</span>
         </div>
         <div className="my-4 h-px w-full bg-border dark:bg-gray-800" />
         <div className="max-h-64 space-y-4 overflow-y-auto pr-2 text-sm">
-          {quiz.questions.map((question, index) => (
+          {quiz.questions?.map((question, index) => (
             <div key={question.id} className="rounded-lg bg-muted/30 p-4 dark:bg-gray-800">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-foreground">

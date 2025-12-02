@@ -61,7 +61,7 @@ export default function CourseForm({ initialValues, onSubmit, isSubmitting }: Co
           <Label>Status</Label>
           <Select
             value={values.status}
-            onValueChange={(value) => updateField('status', value as CourseFormData['status'])}
+            onValueChange={(value) => updateField('status', value as string)}
           >
             <SelectTrigger>
               <SelectValue />
@@ -76,7 +76,7 @@ export default function CourseForm({ initialValues, onSubmit, isSubmitting }: Co
           <Label htmlFor="duration">Duration</Label>
           <Input
             id="duration"
-            value={values.duration}
+            value={values.duration ?? ''}
             onChange={(event) => updateField('duration', event.target.value)}
             placeholder="8 weeks"
           />
