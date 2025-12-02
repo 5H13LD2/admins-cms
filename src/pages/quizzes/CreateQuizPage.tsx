@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/useToast';
 
 export default function CreateQuizPage() {
   const navigate = useNavigate();
-  const toast = useToast();
+  const { toast } = useToast();
   const { courses } = useCourses();
   const { modules } = useModules();
 
@@ -45,22 +45,22 @@ export default function CreateQuizPage() {
 
     // Validation
     if (!courseId) {
-      toast.error('Please select a course');
+      toast({ title: 'Error', description: 'Please select a course', variant: 'destructive' });
       return;
     }
 
     if (!moduleId) {
-      toast.error('Please select a module');
+      toast({ title: 'Error', description: 'Please select a module', variant: 'destructive' });
       return;
     }
 
     if (!questionText.trim()) {
-      toast.error('Question text is required');
+      toast({ title: 'Error', description: 'Question text is required', variant: 'destructive' });
       return;
     }
 
     if (options.some(opt => !opt.trim())) {
-      toast.error('All four options must be filled');
+      toast({ title: 'Error', description: 'All four options must be filled', variant: 'destructive' });
       return;
     }
 
@@ -77,11 +77,11 @@ export default function CreateQuizPage() {
         order
       });
 
-      toast.success('Quiz question added successfully!');
+      toast({ title: 'Success', description: 'Quiz question added successfully!' });
       navigate('/quizzes/manage');
     } catch (error) {
       console.error('Error adding question:', error);
-      toast.error('Failed to add question. Please try again.');
+      toast({ title: 'Error', description: 'Failed to add question. Please try again.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
