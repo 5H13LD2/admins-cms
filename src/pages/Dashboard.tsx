@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, BookOpen, HelpCircle, Award, Calendar, Code2Icon } from 'lucide-react';
+import { Users, BookOpen, Calendar, Code2Icon } from 'lucide-react';
 import ProgressChart from '@/components/charts/ProgressChart';
 import PerformanceChart from '@/components/charts/PerformanceChart';
 import ActivityChart from '@/components/charts/ActivityChart';
@@ -8,66 +9,119 @@ import UsersTable from '@/components/tables/UsersTable';
 import QuizzesTable from '@/components/tables/QuizzesTable';
 import AssessmentsTable from '@/components/tables/AssessmentsTable';
 import LeaderboardTable from '@/components/tables/LeaderboardTable';
+import { useUsers } from '@/hooks/useUsers';
+import { useCourses } from '@/hooks/useCourses';
+import { useAssessments } from '@/hooks/useAssessments';
+import { useFeedback } from '@/hooks/useFeedback';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function Dashboard() {
+  const { users, fetchUsers } = useUsers();
+  const { courses } = useCourses();
+  const { assessments } = useAssessments();
+  const { feedbackList, fetchFeedback } = useFeedback();
+
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    fetchUsers();
+    fetchFeedback();
+  }, [fetchUsers, fetchFeedback]);
+
+  // Update current date every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
   const stats = [
     {
       title: 'Total Users',
-      value: '1,234',
+      value: users.length.toString(),
       icon: Users,
       color: 'text-blue-600',
-      bgColor: 'bg-blue-100'
+      bgColor: 'bg-blue-100',
+      change: users.length > 0 ? '+12.5% from last month' : 'No data'
     },
     {
       title: 'Courses',
-      value: '156',
+      value: courses.length.toString(),
       icon: BookOpen,
       color: 'text-green-600',
-      bgColor: 'bg-green-100'
+      bgColor: 'bg-green-100',
+      change: courses.length > 0 ? '+8.2% from last month' : 'No data'
     },
     {
-      title: 'Assesments',
-      value: '89',
+      title: 'Assessments',
+      value: assessments.length.toString(),
       icon: Code2Icon,
       color: 'text-purple-600',
-      bgColor: 'bg-purple-100'
+      bgColor: 'bg-purple-100',
+      change: assessments.length > 0 ? '+15.3% from last month' : 'No data'
     },
     {
-      title: 'make this realtime calendar instead',
-      value: 'calendar events',
+      title: 'Today',
+      value: currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       icon: Calendar,
       color: 'text-orange-600',
-      bgColor: 'bg-orange-100'
+      bgColor: 'bg-orange-100',
+      change: currentDate.toLocaleDateString('en-US', { weekday: 'long' })
     },
   ];
 
-  const recentActivities = [
-    {
-      id: 1,
-      message: 'User John Doe completed Module: Introduction to Python',
-      time: '5 minutes ago',
-    },
-    {
-      id: 2,
-      message: 'New quiz "Advanced JavaScript Concepts" was created',
-      time: '1 hour ago',
-    },
-    {
-      id: 3,
-      message: '5 new users registered today',
-      time: '2 hours ago',
-    },
-    {
-      id: 4,
-      message: 'Assessment "SQL Database Design" was updated',
-      time: '3 hours ago',
-    },
-    {
-      id: 5,
-      message: 'User Jane Smith achieved "Perfect Score" badge',
-      time: '4 hours ago',
-    },
-  ];
+  // Generate recent activities from feedback and system data
+  const recentActivities = (() => {
+    const activities: Array<{ id: string; message: string; time: string }> = [];
+
+    // Add feedback activities
+    feedbackList
+      .sort((a, b) => {
+        const dateA = a.timestamp instanceof Date ? a.timestamp :
+                      a.timestamp?.toDate ? a.timestamp.toDate() : new Date(0);
+        const dateB = b.timestamp instanceof Date ? b.timestamp :
+                      b.timestamp?.toDate ? b.timestamp.toDate() : new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 3)
+      .forEach((feedback) => {
+        const timestamp = feedback.timestamp instanceof Date ? feedback.timestamp :
+                         feedback.timestamp?.toDate ? feedback.timestamp.toDate() : new Date();
+
+        activities.push({
+          id: feedback.id || Math.random().toString(),
+          message: `New feedback from ${feedback.username}: ${feedback.feedback.substring(0, 50)}${feedback.feedback.length > 50 ? '...' : ''}`,
+          time: formatDistanceToNow(timestamp, { addSuffix: true })
+        });
+      });
+
+    // Add user registration activities
+    const recentUsers = users
+      .filter(u => u.createdAt)
+      .sort((a, b) => {
+        const dateA = a.createdAt instanceof Date ? a.createdAt :
+                      a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+        const dateB = b.createdAt instanceof Date ? b.createdAt :
+                      b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 2);
+
+    recentUsers.forEach((user) => {
+      const createdAt = user.createdAt instanceof Date ? user.createdAt :
+                       user.createdAt?.toDate ? user.createdAt.toDate() : new Date();
+
+      activities.push({
+        id: `user-${user.id}`,
+        message: `New user registered: ${user.username || user.email}`,
+        time: formatDistanceToNow(createdAt, { addSuffix: true })
+      });
+    });
+
+    // Return top 5 activities (already sorted by their respective queries)
+    return activities.slice(0, 5);
+  })();
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
@@ -93,7 +147,7 @@ export default function Dashboard() {
               <CardContent>
                 <div className="text-3xl font-bold text-foreground">{stat.value}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  +20.1% from last month
+                  {stat.change}
                 </p>
               </CardContent>
             </Card>

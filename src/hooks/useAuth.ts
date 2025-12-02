@@ -3,7 +3,6 @@ import { User } from 'firebase/auth';
 import { authService } from '@/services/auth.service';
 import { usersService } from '@/services/users.service';
 import { auth } from '@/services/firebase';
-import { User as AppUser } from '@/types/user.types';
 
 export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
