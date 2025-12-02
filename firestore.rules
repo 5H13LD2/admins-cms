@@ -44,7 +44,9 @@ service cloud.firestore {
     // 🔹 Global Achievements Collection (template list of all achievements)
     match /achievements/{achievementId} {
       allow read: if true;                     // anyone can read available achievements
-      allow write: if request.auth.token.admin == true; // only admin can modify global achievements
+      // Only admin can modify global achievements - check role from users collection
+      allow write: if request.auth != null 
+                   && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     // 🔹 User Progress Collection (for tracking lesson completion and technical assessments)
@@ -106,7 +108,9 @@ service cloud.firestore {
     // 🔹 Technical Assessments (Challenge Definitions)
     match /technical_assesment/{docId} {
       allow read: if request.auth != null;
-      allow write: if request.auth.token.admin == true;
+      // Only admin can write - check role from users collection
+      allow write: if request.auth != null 
+                   && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
     // 🔹 Feedback Collection
@@ -124,13 +128,14 @@ service cloud.firestore {
                     && request.resource.data.appVersion is string
                     && request.resource.data.status is string;
 
-      // Allow users to read only their own feedback
+      // Allow admins to read all feedback, or users to read their own feedback
       allow read: if request.auth != null
-                  && resource.data.userId == request.auth.uid;
+                  && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+                      || resource.data.userId == request.auth.uid);
 
       // Only admins can update/delete feedback
       allow update, delete: if request.auth != null
-                            && request.auth.token.admin == true;
+                            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     // 🔹 Test Collection (for dev/debugging)
@@ -145,7 +150,9 @@ service cloud.firestore {
       allow read: if request.auth != null;
 
       // Only admins can create/update/delete daily problems
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      // Check if user has admin role in users collection
+      allow write: if request.auth != null 
+                   && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     // 🔹 Catch-all deny (safety net)

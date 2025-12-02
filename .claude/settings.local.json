@@ -9,7 +9,10 @@
       "Bash(npm install:*)",
       "Bash(vercel --prod:*)",
       "Bash(npm run build:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run dev:*)",
+      "Bash(firebase deploy:*)"
     ],
     "deny": [],
     "ask": []

@@ -8,10 +8,11 @@ import {
     deleteDoc,
     query,
     orderBy,
+    where,
     Timestamp
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Feedback } from '@/types';
+import { Feedback, CreateFeedbackData, UpdateFeedbackData, FeedbackStatus } from '@/types/feedback.types';
 
 const FEEDBACK_COLLECTION = 'feedback';
 
@@ -19,7 +20,7 @@ export const feedbackService = {
     // Get all feedback
     getAll: async (): Promise<Feedback[]> => {
         try {
-            const q = query(collection(db, FEEDBACK_COLLECTION), orderBy('createdAt', 'desc'));
+            const q = query(collection(db, FEEDBACK_COLLECTION), orderBy('timestamp', 'desc'));
             const querySnapshot = await getDocs(q);
             return querySnapshot.docs.map(doc => ({
                 id: doc.id,
@@ -27,6 +28,44 @@ export const feedbackService = {
             })) as Feedback[];
         } catch (error) {
             console.error('Error getting feedback:', error);
+            throw error;
+        }
+    },
+
+    // Get feedback by status
+    getByStatus: async (status: FeedbackStatus): Promise<Feedback[]> => {
+        try {
+            const q = query(
+                collection(db, FEEDBACK_COLLECTION),
+                where('status', '==', status),
+                orderBy('timestamp', 'desc')
+            );
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })) as Feedback[];
+        } catch (error) {
+            console.error('Error getting feedback by status:', error);
+            throw error;
+        }
+    },
+
+    // Get feedback by user
+    getByUser: async (userId: string): Promise<Feedback[]> => {
+        try {
+            const q = query(
+                collection(db, FEEDBACK_COLLECTION),
+                where('userId', '==', userId),
+                orderBy('timestamp', 'desc')
+            );
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })) as Feedback[];
+        } catch (error) {
+            console.error('Error getting feedback by user:', error);
             throw error;
         }
     },
@@ -48,11 +87,12 @@ export const feedbackService = {
     },
 
     // Create new feedback
-    create: async (feedbackData: Omit<Feedback, 'id'>): Promise<string> => {
+    create: async (feedbackData: CreateFeedbackData): Promise<string> => {
         try {
             const docRef = await addDoc(collection(db, FEEDBACK_COLLECTION), {
                 ...feedbackData,
-                createdAt: Timestamp.now()
+                status: 'new' as FeedbackStatus,
+                timestamp: Timestamp.now()
             });
             return docRef.id;
         } catch (error) {
@@ -61,11 +101,42 @@ export const feedbackService = {
         }
     },
 
-    // Update feedback (e.g., mark as read/resolved)
-    update: async (id: string, feedbackData: Partial<Feedback>): Promise<void> => {
+    // Update feedback status
+    updateStatus: async (id: string, status: FeedbackStatus): Promise<void> => {
         try {
             const docRef = doc(db, FEEDBACK_COLLECTION, id);
-            await updateDoc(docRef, feedbackData);
+            const updates: any = { status };
+
+            if (status === 'resolved') {
+                updates.resolvedAt = Timestamp.now();
+            }
+
+            await updateDoc(docRef, updates);
+        } catch (error) {
+            console.error('Error updating feedback status:', error);
+            throw error;
+        }
+    },
+
+    // Add response to feedback
+    addResponse: async (id: string, response: string): Promise<void> => {
+        try {
+            const docRef = doc(db, FEEDBACK_COLLECTION, id);
+            await updateDoc(docRef, {
+                response,
+                status: 'reviewed' as FeedbackStatus
+            });
+        } catch (error) {
+            console.error('Error adding response to feedback:', error);
+            throw error;
+        }
+    },
+
+    // Update feedback
+    update: async (id: string, feedbackData: UpdateFeedbackData): Promise<void> => {
+        try {
+            const docRef = doc(db, FEEDBACK_COLLECTION, id);
+            await updateDoc(docRef, feedbackData as any);
         } catch (error) {
             console.error('Error updating feedback:', error);
             throw error;

@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle, AlertCircle, Database, Shield, UserCog } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Database, Shield, UserCog, Calendar, Code2, MessageSquare } from 'lucide-react';
 import { migrateModuleCount } from '@/scripts/migrateModuleCount';
+import { migrateDailyProblems } from '@/scripts/migrateDailyProblems';
+import { migrateDailyChallenges } from '@/scripts/migrateDailyChallenges';
+import { migrateFeedbackPermissions } from '@/scripts/migrateFeedbackPermissions';
 import { setAdminRole, getAllUserRoles } from '@/scripts/setAdminRole';
 
 export default function MigrationPage() {
@@ -12,6 +15,20 @@ export default function MigrationPage() {
         success: boolean;
         message: string;
         details?: { updatedCount: number; skippedCount: number; total: number };
+    } | null>(null);
+
+    const [isDailyProblemsRunning, setIsDailyProblemsRunning] = useState(false);
+    const [dailyProblemsResult, setDailyProblemsResult] = useState<{
+        success: boolean;
+        message: string;
+        details?: { updatedCount: number; skippedCount: number; errorCount: number; total: number };
+    } | null>(null);
+
+    const [isDailyChallengesRunning, setIsDailyChallengesRunning] = useState(false);
+    const [dailyChallengesResult, setDailyChallengesResult] = useState<{
+        success: boolean;
+        message: string;
+        details?: { updatedCount: number; skippedCount: number; errorCount: number; total: number };
     } | null>(null);
 
     const [adminEmail, setAdminEmail] = useState('');
@@ -23,6 +40,13 @@ export default function MigrationPage() {
 
     const [userRoles, setUserRoles] = useState<any[]>([]);
     const [isLoadingRoles, setIsLoadingRoles] = useState(false);
+
+    const [isFeedbackRunning, setIsFeedbackRunning] = useState(false);
+    const [feedbackResult, setFeedbackResult] = useState<{
+        success: boolean;
+        message: string;
+        details?: { updatedCount: number; skippedCount: number; errorCount: number; total: number };
+    } | null>(null);
 
     const handleRunMigration = async () => {
         setIsRunning(true);
@@ -81,6 +105,69 @@ export default function MigrationPage() {
         }
     };
 
+    const handleRunDailyProblemsMigration = async () => {
+        setIsDailyProblemsRunning(true);
+        setDailyProblemsResult(null);
+
+        try {
+            const migrationResult = await migrateDailyProblems();
+            setDailyProblemsResult({
+                success: true,
+                message: 'Daily Problems migration completed successfully!',
+                details: migrationResult
+            });
+        } catch (error) {
+            setDailyProblemsResult({
+                success: false,
+                message: error instanceof Error ? error.message : 'Migration failed'
+            });
+        } finally {
+            setIsDailyProblemsRunning(false);
+        }
+    };
+
+    const handleRunDailyChallengesMigration = async () => {
+        setIsDailyChallengesRunning(true);
+        setDailyChallengesResult(null);
+
+        try {
+            const migrationResult = await migrateDailyChallenges();
+            setDailyChallengesResult({
+                success: true,
+                message: 'Daily Challenges migration completed successfully!',
+                details: migrationResult
+            });
+        } catch (error) {
+            setDailyChallengesResult({
+                success: false,
+                message: error instanceof Error ? error.message : 'Migration failed'
+            });
+        } finally {
+            setIsDailyChallengesRunning(false);
+        }
+    };
+
+    const handleRunFeedbackMigration = async () => {
+        setIsFeedbackRunning(true);
+        setFeedbackResult(null);
+
+        try {
+            const migrationResult = await migrateFeedbackPermissions();
+            setFeedbackResult({
+                success: true,
+                message: 'Feedback permissions migration completed successfully!',
+                details: migrationResult
+            });
+        } catch (error) {
+            setFeedbackResult({
+                success: false,
+                message: error instanceof Error ? error.message : 'Migration failed'
+            });
+        } finally {
+            setIsFeedbackRunning(false);
+        }
+    };
+
     return (
         <div className="animate-in fade-in zoom-in-95 duration-500">
             <div className="mb-6">
@@ -91,6 +178,77 @@ export default function MigrationPage() {
             </div>
 
             <div className="space-y-6">
+                {/* Feedback Permissions Migration */}
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                            <MessageSquare className="h-6 w-6 text-primary" />
+                            <div>
+                                <CardTitle>Fix Feedback Data & Permissions</CardTitle>
+                                <CardDescription>
+                                    Validates feedback data and ensures proper status values for CMS access
+                                </CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="rounded-lg bg-muted p-4 space-y-2">
+                            <h4 className="font-semibold text-sm">What this migration does:</h4>
+                            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                                <li>Validates status values (new, pending, reviewed, resolved)</li>
+                                <li>Ensures all required fields exist (userId, username, userEmail, feedback)</li>
+                                <li>Adds missing timestamps and default values</li>
+                                <li>Ensures appVersion and deviceInfo fields exist</li>
+                                <li>Fixes data inconsistencies from mobile app submissions</li>
+                                <li>Safe to run multiple times</li>
+                            </ul>
+                        </div>
+
+                        <Button
+                            onClick={handleRunFeedbackMigration}
+                            disabled={isFeedbackRunning}
+                            className="w-full sm:w-auto"
+                        >
+                            {isFeedbackRunning ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Running Migration...
+                                </>
+                            ) : (
+                                <>
+                                    <MessageSquare className="mr-2 h-4 w-4" />
+                                    Run Migration
+                                </>
+                            )}
+                        </Button>
+
+                        {feedbackResult && (
+                            <Alert variant={feedbackResult.success ? 'default' : 'destructive'}>
+                                {feedbackResult.success ? (
+                                    <CheckCircle className="h-4 w-4" />
+                                ) : (
+                                    <AlertCircle className="h-4 w-4" />
+                                )}
+                                <AlertDescription>
+                                    <div className="space-y-2">
+                                        <p className="font-semibold">{feedbackResult.message}</p>
+                                        {feedbackResult.details && (
+                                            <div className="text-sm space-y-1">
+                                                <p>✅ Updated: {feedbackResult.details.updatedCount} feedback entries</p>
+                                                <p>⏭️ Skipped: {feedbackResult.details.skippedCount} feedback entries</p>
+                                                {feedbackResult.details.errorCount > 0 && (
+                                                    <p>❌ Errors: {feedbackResult.details.errorCount} feedback entries</p>
+                                                )}
+                                                <p>📊 Total: {feedbackResult.details.total} feedback entries</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </CardContent>
+                </Card>
+
                 {/* Admin Role Management */}
                 <Card className="border-primary/20">
                     <CardHeader>
@@ -221,6 +379,149 @@ export default function MigrationPage() {
                                 </p>
                             )}
                         </div>
+                    </CardContent>
+                </Card>
+
+                {/* Daily Challenges Migration */}
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                            <Code2 className="h-6 w-6 text-primary" />
+                            <div>
+                                <CardTitle>Fix Daily Challenges Data</CardTitle>
+                                <CardDescription>
+                                    Validates and fixes coding challenges with test cases (Java/Python)
+                                </CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="rounded-lg bg-muted p-4 space-y-2">
+                            <h4 className="font-semibold text-sm">What this migration does:</h4>
+                            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                                <li>Validates compiler types (javacompiler, pythoncompiler)</li>
+                                <li>Validates course IDs (java, python)</li>
+                                <li>Validates difficulty levels (easy, medium, hard)</li>
+                                <li>Ensures all required fields exist</li>
+                                <li>Validates test cases structure (input, expectedOutput, isHidden)</li>
+                                <li>Converts timestamp fields properly (createdAt, expiredAt)</li>
+                                <li>Safe to run multiple times</li>
+                            </ul>
+                        </div>
+
+                        <Button
+                            onClick={handleRunDailyChallengesMigration}
+                            disabled={isDailyChallengesRunning}
+                            className="w-full sm:w-auto"
+                        >
+                            {isDailyChallengesRunning ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Running Migration...
+                                </>
+                            ) : (
+                                <>
+                                    <Code2 className="mr-2 h-4 w-4" />
+                                    Run Migration
+                                </>
+                            )}
+                        </Button>
+
+                        {dailyChallengesResult && (
+                            <Alert variant={dailyChallengesResult.success ? 'default' : 'destructive'}>
+                                {dailyChallengesResult.success ? (
+                                    <CheckCircle className="h-4 w-4" />
+                                ) : (
+                                    <AlertCircle className="h-4 w-4" />
+                                )}
+                                <AlertDescription>
+                                    <div className="space-y-2">
+                                        <p className="font-semibold">{dailyChallengesResult.message}</p>
+                                        {dailyChallengesResult.details && (
+                                            <div className="text-sm space-y-1">
+                                                <p>✅ Updated: {dailyChallengesResult.details.updatedCount} challenges</p>
+                                                <p>⏭️ Skipped: {dailyChallengesResult.details.skippedCount} challenges</p>
+                                                {dailyChallengesResult.details.errorCount > 0 && (
+                                                    <p>❌ Errors: {dailyChallengesResult.details.errorCount} challenges</p>
+                                                )}
+                                                <p>📊 Total: {dailyChallengesResult.details.total} challenges</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Daily Problems Migration */}
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                            <Calendar className="h-6 w-6 text-primary" />
+                            <div>
+                                <CardTitle>Fix Daily Problems Data</CardTitle>
+                                <CardDescription>
+                                    Validates and fixes existing daily problem data structure
+                                </CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="rounded-lg bg-muted p-4 space-y-2">
+                            <h4 className="font-semibold text-sm">What this migration does:</h4>
+                            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                                <li>Validates difficulty levels (Easy, Medium, Hard)</li>
+                                <li>Validates problem types (code, quiz, algorithm)</li>
+                                <li>Ensures all required fields exist (title, description, content, points)</li>
+                                <li>Converts date fields to proper Firestore Timestamps</li>
+                                <li>Adds missing timestamps (createdAt, updatedAt)</li>
+                                <li>Safe to run multiple times</li>
+                            </ul>
+                        </div>
+
+                        <Button
+                            onClick={handleRunDailyProblemsMigration}
+                            disabled={isDailyProblemsRunning}
+                            className="w-full sm:w-auto"
+                        >
+                            {isDailyProblemsRunning ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Running Migration...
+                                </>
+                            ) : (
+                                <>
+                                    <Calendar className="mr-2 h-4 w-4" />
+                                    Run Migration
+                                </>
+                            )}
+                        </Button>
+
+                        {dailyProblemsResult && (
+                            <Alert variant={dailyProblemsResult.success ? 'default' : 'destructive'}>
+                                {dailyProblemsResult.success ? (
+                                    <CheckCircle className="h-4 w-4" />
+                                ) : (
+                                    <AlertCircle className="h-4 w-4" />
+                                )}
+                                <AlertDescription>
+                                    <div className="space-y-2">
+                                        <p className="font-semibold">{dailyProblemsResult.message}</p>
+                                        {dailyProblemsResult.details && (
+                                            <div className="text-sm space-y-1">
+                                                <p>✅ Updated: {dailyProblemsResult.details.updatedCount} problems</p>
+                                                <p>⏭️ Skipped: {dailyProblemsResult.details.skippedCount} problems</p>
+                                                {dailyProblemsResult.details.errorCount > 0 && (
+                                                    <p>❌ Errors: {dailyProblemsResult.details.errorCount} problems</p>
+                                                )}
+                                                <p>📊 Total: {dailyProblemsResult.details.total} problems</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </AlertDescription>
+                            </Alert>
+                        )}
                     </CardContent>
                 </Card>
 

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, BookOpen, HelpCircle, Award } from 'lucide-react';
+import { Users, BookOpen, HelpCircle, Award, Calendar, Code2Icon } from 'lucide-react';
 import ProgressChart from '@/components/charts/ProgressChart';
 import PerformanceChart from '@/components/charts/PerformanceChart';
 import ActivityChart from '@/components/charts/ActivityChart';
@@ -28,14 +28,14 @@ export default function Dashboard() {
     {
       title: 'Assesments',
       value: '89',
-      icon: HelpCircle,
+      icon: Code2Icon,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100'
     },
     {
-      title: 'Assessments',
-      value: '45',
-      icon: Award,
+      title: 'make this realtime calendar instead',
+      value: 'calendar events',
+      icon: Calendar,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100'
     },

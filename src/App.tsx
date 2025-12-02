@@ -31,6 +31,7 @@ import AchievementsPage from './pages/achievements/AchievementsPage';
 import CreateAchievementPage from './pages/achievements/CreateAchievementPage';
 import DailyProblemsPage from './pages/daily-problems/DailyProblemsPage';
 import CreateDailyProblemPage from './pages/daily-problems/CreateDailyProblemPage';
+import EditDailyProblemPage from './pages/daily-problems/EditDailyProblemPage';
 import FeedbackPage from './pages/feedback/FeedbackPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import ReportsPage from './pages/analytics/ReportsPage';
@@ -95,6 +96,7 @@ function App() {
 
                 <Route path="daily-problems" element={<DailyProblemsPage />} />
                 <Route path="daily-problems/create" element={<CreateDailyProblemPage />} />
+                <Route path="daily-problems/edit/:id" element={<EditDailyProblemPage />} />
 
                 <Route path="feedback" element={<FeedbackPage />} />
 
