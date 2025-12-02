@@ -157,4 +157,75 @@ export default Counter;`,
     status: 'active',
     author: 'Admin',
   },
+  {
+    id: 'python_challenge_005',
+    title: 'Python List Manipulation',
+    description: 'Fix the bug in the list manipulation code.',
+    type: 'brokenCode',
+    difficulty: 'Medium',
+    category: 'Python',
+    topic: 'Lists',
+    courseId: 'course-1',
+    brokenCode: `def process_list(items):
+    for i in range(len(items)):
+        if items[i] % 2 == 0:
+            items.remove(items[i])
+    return items`,
+    correctCode: `def process_list(items):
+    return [x for x in items if x % 2 != 0]`,
+    tags: ['python', 'lists', 'debugging'],
+    status: 'active',
+    author: 'Admin',
+  },
+  {
+    id: 'sql_01_select_all',
+    title: 'Select All Users',
+    description: 'Retrieve all records from the users table.',
+    type: 'sql',
+    difficulty: 'Easy',
+    category: 'SQL',
+    topic: 'Basic Select',
+    courseId: 'course-3',
+    sample_table: {
+      name: 'users',
+      columns: ['id', 'username', 'email'],
+      rows: [
+        { id: 1, username: 'user1', email: 'user1@example.com' },
+        { id: 2, username: 'user2', email: 'user2@example.com' },
+      ],
+    },
+    expected_query: 'SELECT * FROM users;',
+    tags: ['sql', 'select'],
+    status: 'active',
+    author: 'Admin',
+  },
+  {
+    id: 'java_challenge_001',
+    title: 'Java Null Pointer Fix',
+    description: 'Fix the potential NullPointerException in the code.',
+    type: 'brokenCode',
+    difficulty: 'Easy',
+    category: 'Java',
+    topic: 'Null Safety',
+    courseId: 'course-4',
+    brokenCode: `public class Main {
+    public static void main(String[] args) {
+        String str = null;
+        if (str.length() > 0) {
+            System.out.println(str);
+        }
+    }
+}`,
+    correctCode: `public class Main {
+    public static void main(String[] args) {
+        String str = null;
+        if (str != null && str.length() > 0) {
+            System.out.println(str);
+        }
+    }
+}`,
+    tags: ['java', 'null-pointer', 'debugging'],
+    status: 'active',
+    author: 'Admin',
+  },
 ];

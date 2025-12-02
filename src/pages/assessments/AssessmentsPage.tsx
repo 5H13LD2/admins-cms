@@ -1,20 +1,24 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Filter, Plus } from 'lucide-react';
+import { Filter, Plus, Loader2 } from 'lucide-react';
 
 import SearchBar from '@/components/common/SearchBar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { dummyAssessments, dummyCourses } from '@/data/dummyData';
+import { useAssessments } from '@/hooks/useAssessments';
+import { useCourses } from '@/hooks/useCourses';
 
 export default function AssessmentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [courseFilter, setCourseFilter] = useState('all');
 
-  const filteredAssessments = dummyAssessments.filter((assessment) => {
+  const { assessments, loading: assessmentsLoading } = useAssessments();
+  const { courses } = useCourses();
+
+  const filteredAssessments = assessments.filter((assessment) => {
     const matchesSearch =
       assessment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       assessment.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -60,7 +64,7 @@ export default function AssessmentsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Courses</SelectItem>
-              {dummyCourses.map((course) => (
+              {courses.map((course) => (
                 <SelectItem key={course.id} value={course.id}>
                   {course.title}
                 </SelectItem>
@@ -75,48 +79,56 @@ export default function AssessmentsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredAssessments.map((assessment) => (
-          <Card key={assessment.id} className="flex flex-col">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <CardTitle>{assessment.title}</CardTitle>
-                  <CardDescription className="mt-2">{assessment.description}</CardDescription>
+      {assessmentsLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {filteredAssessments.map((assessment) => (
+            <Card key={assessment.id} className="flex flex-col">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle>{assessment.title}</CardTitle>
+                    <CardDescription className="mt-2">{assessment.description}</CardDescription>
+                  </div>
+                  <Badge variant="secondary" className="capitalize">
+                    {assessment.difficulty}
+                  </Badge>
                 </div>
-                <Badge variant="secondary" className="capitalize">
-                  {assessment.difficulty}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 flex-1">
-              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                {assessment.tags?.map((tag) => (
-                  <span key={tag} className="rounded-full bg-secondary px-3 py-1">
-                    {tag}
+              </CardHeader>
+              <CardContent className="space-y-4 flex-1">
+                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  {assessment.tags?.map((tag) => (
+                    <span key={tag} className="rounded-full bg-secondary px-3 py-1">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span className="capitalize">
+                    {assessment.type === 'brokenCode' ? 'Broken Code' : assessment.type?.replace('_', ' ')}
                   </span>
-                ))}
-              </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span className="capitalize">{assessment.type?.replace('_', ' ')}</span>
-                <span>Status: {assessment.status}</span>
-              </div>
-              <Link to={`/assessments/${assessment.id}`}>
-                <Button variant="outline" className="w-full">
-                  View Details
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        ))}
-        {filteredAssessments.length === 0 && (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-muted-foreground">
-              No assessments match your filters.
-            </CardContent>
-          </Card>
-        )}
-      </div>
+                  <span>Status: {assessment.status}</span>
+                </div>
+                <Link to={`/assessments/${assessment.id}`}>
+                  <Button variant="outline" className="w-full">
+                    View Details
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
+          {filteredAssessments.length === 0 && (
+            <Card>
+              <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                No assessments match your filters.
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }

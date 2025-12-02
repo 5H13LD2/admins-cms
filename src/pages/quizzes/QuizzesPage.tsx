@@ -116,7 +116,7 @@ export default function QuizzesPage() {
               <SelectValue placeholder="Course" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All courses</SelectItem>
+              <SelectItem value="all">Select Course</SelectItem>
               {courses.map((course) => (
                 <SelectItem key={course.id} value={course.id}>
                   {course.title}

@@ -199,6 +199,7 @@ export const useUsers = () => {
         getUserStats,
         getUserProgress: usersService.getUserProgress,
         getUserCourseProgress: usersService.getUserCourseProgress,
+        getUserTechnicalAssessmentProgress: usersService.getUserTechnicalAssessmentProgress,
         addOrUpdateAssessment,
         deleteAssessment,
         updateUserXP,

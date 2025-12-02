@@ -1,11 +1,16 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function SettingsPage() {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const [settings, setSettings] = useState({
     orgName: 'TechLaunch',
     timezone: 'UTC-5',
@@ -16,6 +21,15 @@ export default function SettingsPage() {
 
   const handleToggle = (field: keyof typeof settings) => {
     setSettings((prev) => ({ ...prev, [field]: !prev[field] }));
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return (
@@ -96,6 +110,26 @@ export default function SettingsPage() {
             <Button variant="outline" className="w-full">
               Update automation
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Account</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border border-border p-4">
+              <p className="font-semibold text-foreground">Session Management</p>
+              <p className="text-sm text-muted-foreground mb-4">Sign out of your account on this device</p>
+              <Button
+                variant="destructive"
+                className="w-full flex items-center justify-center gap-2"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

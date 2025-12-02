@@ -11,9 +11,10 @@ import { User } from '@/types';
 
 export default function UserProgressPage() {
   const { userId } = useParams<{ userId: string }>();
-  const { getUser, getUserCourseProgress } = useUsers();
+  const { getUser, getUserCourseProgress, getUserTechnicalAssessmentProgress } = useUsers();
   const [user, setUser] = useState<User | null>(null);
   const [courseProgress, setCourseProgress] = useState<any[]>([]);
+  const [technicalAssessmentProgress, setTechnicalAssessmentProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,6 +33,15 @@ export default function UserProgressPage() {
             console.log('No course progress data found');
             setCourseProgress([]);
           }
+
+          // Fetch technical assessment progress
+          try {
+            const assessmentData = await getUserTechnicalAssessmentProgress(userId);
+            setTechnicalAssessmentProgress(assessmentData);
+          } catch (assessmentError) {
+            console.log('No technical assessment progress data found');
+            setTechnicalAssessmentProgress([]);
+          }
         } catch (error) {
           console.error('Error fetching user:', error);
         } finally {
@@ -40,7 +50,7 @@ export default function UserProgressPage() {
       }
     };
     fetchData();
-  }, [userId, getUser, getUserCourseProgress]);
+  }, [userId, getUser, getUserCourseProgress, getUserTechnicalAssessmentProgress]);
 
   if (loading) {
     return (
@@ -287,6 +297,53 @@ export default function UserProgressPage() {
                 </div>
               );
             })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Technical Assessment Progress */}
+      {technicalAssessmentProgress.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Technical Assessment Progress</CardTitle>
+            <CardDescription>SQL and coding assessment completions</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {technicalAssessmentProgress.map((assessment) => (
+              <div key={assessment.assessmentId} className="space-y-2 p-4 border border-border rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="font-semibold text-foreground">{assessment.assessmentId}</p>
+                    {assessment.completed_at && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Completed: {new Date(assessment.completed_at).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {assessment.status && (
+                      <Badge variant={assessment.status === 'completed' ? 'default' : 'secondary'}>
+                        {assessment.status}
+                      </Badge>
+                    )}
+                    {assessment.score !== undefined && (
+                      <Badge variant="outline">
+                        Score: {assessment.score}%
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                {assessment.progress !== undefined && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Progress</span>
+                      <span className="text-xs font-semibold text-foreground">{assessment.progress}%</span>
+                    </div>
+                    <Progress value={assessment.progress} className="h-2" />
+                  </div>
+                )}
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}

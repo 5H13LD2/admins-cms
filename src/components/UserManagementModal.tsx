@@ -36,6 +36,7 @@ export function UserManagementModal({
     addAchievement,
     removeAchievement,
     updateUserBadge,
+    getUserTechnicalAssessmentProgress,
     loading
   } = useUsers();
 
@@ -49,6 +50,7 @@ export function UserManagementModal({
   const [xpToAdd, setXpToAdd] = useState('');
   const [newAchievement, setNewAchievement] = useState('');
   const [newBadge, setNewBadge] = useState('');
+  const [technicalAssessmentProgress, setTechnicalAssessmentProgress] = useState<any[]>([]);
 
   useEffect(() => {
     if (!open) {
@@ -60,8 +62,23 @@ export function UserManagementModal({
       setXpToAdd('');
       setNewAchievement('');
       setNewBadge('');
+      setTechnicalAssessmentProgress([]);
+    } else if (user) {
+      // Fetch technical assessment progress when modal opens
+      console.log('🔍 Fetching technical assessments for user:', user.id);
+      const fetchTechnicalAssessments = async () => {
+        try {
+          const data = await getUserTechnicalAssessmentProgress(user.id);
+          console.log('✅ Technical assessment data received:', data);
+          setTechnicalAssessmentProgress(data);
+        } catch (error) {
+          console.error('❌ Error fetching technical assessment progress:', error);
+          setTechnicalAssessmentProgress([]);
+        }
+      };
+      fetchTechnicalAssessments();
     }
-  }, [open]);
+  }, [open, user, getUserTechnicalAssessmentProgress]);
 
   if (!user) return null;
 
@@ -328,10 +345,13 @@ export function UserManagementModal({
             </div>
 
             <div className="space-y-2">
-              <Label>User Assessments ({Object.keys(assessmentScores).length})</Label>
-              <div className="space-y-2">
-                {Object.keys(assessmentScores).length > 0 ? (
-                  Object.entries(assessmentScores).map(([id, data]: [string, any]) => (
+              <Label>User Assessments ({Object.keys(assessmentScores).length + technicalAssessmentProgress.length})</Label>
+
+              {/* Assessment Scores from User Document */}
+              {Object.keys(assessmentScores).length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Manual Assessments</h4>
+                  {Object.entries(assessmentScores).map(([id, data]: [string, any]) => (
                     <div key={id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <div className="font-semibold">{id}</div>
@@ -348,11 +368,43 @@ export function UserManagementModal({
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">No assessments recorded</p>
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Technical Assessment Progress from Firestore */}
+              {technicalAssessmentProgress.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Technical Assessments (From Progress)</h4>
+                  {technicalAssessmentProgress.map((assessment) => (
+                    <div key={assessment.assessmentId} className="p-3 border rounded-lg space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="font-semibold">{assessment.assessmentId}</div>
+                        {assessment.status && (
+                          <Badge variant={assessment.status === 'completed' ? 'default' : 'secondary'}>
+                            {assessment.status}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        {assessment.score !== undefined && (
+                          <div>Score: {assessment.score}%</div>
+                        )}
+                        {assessment.progress !== undefined && (
+                          <div>Progress: {assessment.progress}%</div>
+                        )}
+                        {assessment.completed_at && (
+                          <div>Completed: {new Date(assessment.completed_at).toLocaleString()}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {Object.keys(assessmentScores).length === 0 && technicalAssessmentProgress.length === 0 && (
+                <p className="text-sm text-muted-foreground">No assessments recorded</p>
+              )}
             </div>
           </div>
         )}

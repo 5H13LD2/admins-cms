@@ -8,7 +8,6 @@ import {
   query,
   where,
   limit,
-  orderBy,
   serverTimestamp,
   runTransaction
 } from 'firebase/firestore';
@@ -387,6 +386,36 @@ export const usersService = {
     }
   },
 
+  // Get technical assessment progress for a user
+  getUserTechnicalAssessmentProgress: async (userId: string) => {
+    try {
+      // Get all technical assessment progress
+      const path = `user_progress/${userId}/technical_assessment_progress`;
+      console.log('📍 Fetching from Firestore path:', path);
+
+      const assessmentsRef = collection(db, path);
+      const assessmentsSnapshot = await getDocs(assessmentsRef);
+
+      console.log('📊 Documents found:', assessmentsSnapshot.size);
+
+      const assessmentsProgress: any[] = [];
+
+      assessmentsSnapshot.forEach(assessmentDoc => {
+        console.log('📄 Document ID:', assessmentDoc.id, 'Data:', assessmentDoc.data());
+        assessmentsProgress.push({
+          assessmentId: assessmentDoc.id,
+          ...assessmentDoc.data()
+        });
+      });
+
+      console.log('✅ Returning assessments:', assessmentsProgress);
+      return assessmentsProgress;
+    } catch (error) {
+      console.error('Error getting user technical assessment progress:', error);
+      throw error;
+    }
+  },
+
   // Unenroll user from course
   unenrollUserFromCourse: async (userEmail: string, courseName: string) => {
     try {
@@ -468,7 +497,7 @@ export const usersService = {
       }
 
       const userData = userSnap.data();
-      
+
       // Get or create assessment scores object
       const assessmentScores = userData.assessmentScores || {};
       const wasAlreadyPassed = assessmentScores[assessmentId]?.passed;
@@ -480,11 +509,11 @@ export const usersService = {
 
       // Update technical assessments count if passed
       const currentCount = userData.technicalAssessmentsCompleted || 0;
-      const newCount = passed && !wasAlreadyPassed 
-        ? currentCount + 1 
+      const newCount = passed && !wasAlreadyPassed
+        ? currentCount + 1
         : (!passed && wasAlreadyPassed && currentCount > 0)
-        ? currentCount - 1
-        : currentCount;
+          ? currentCount - 1
+          : currentCount;
 
       await updateDoc(userRef, {
         assessmentScores,
@@ -517,7 +546,7 @@ export const usersService = {
 
       const userData = userSnap.data();
       const assessmentScores = userData.assessmentScores || {};
-      
+
       // Check if assessment was passed to adjust count
       const wasPassed = assessmentScores[assessmentId]?.passed;
       const currentCount = userData.technicalAssessmentsCompleted || 0;
@@ -587,7 +616,7 @@ export const usersService = {
 
       const userData = userSnap.data();
       const achievements = userData.achievementsUnlocked || [];
-      
+
       if (achievements.includes(achievementName)) {
         throw new Error('Achievement already unlocked');
       }
