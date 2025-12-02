@@ -46,6 +46,12 @@ const convertToAssessment = (docSnap: any): TechnicalAssessment => {
                 ? JSON.parse(data.sample_table.rows)
                 : data.sample_table.rows
         } : undefined,
+        additionalTables: data.additionalTables ? data.additionalTables.map((table: any) => ({
+            ...table,
+            rows: typeof table.rows === 'string'
+                ? JSON.parse(table.rows)
+                : table.rows
+        })) : undefined,
         expected_query: data.expected_query || undefined,
         expected_result: data.expected_result ? {
             ...data.expected_result,

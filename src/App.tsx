@@ -37,6 +37,7 @@ import ReportsPage from './pages/analytics/ReportsPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import LoginPage from './pages/auth/LoginPage';
 import EditCoursePage from './pages/courses/EditCoursePage';
+import MigrationPage from './pages/admin/MigrationPage';
 import { AuthProvider } from './components/auth/AuthProvider';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
@@ -99,6 +100,8 @@ function App() {
 
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="analytics/reports" element={<ReportsPage />} />
+
+                <Route path="admin/migrations" element={<MigrationPage />} />
 
                 <Route path="settings" element={<SettingsPage />} />
               </Route>

@@ -26,6 +26,7 @@ export interface TechnicalAssessment {
 
   // FOR SQL QUERY TYPE
   sample_table?: SampleTable;
+  additionalTables?: SampleTable[];  // For SQL queries requiring multiple tables (JOINs)
   expected_query?: string;
   expected_result?: SampleTable;
 
@@ -67,6 +68,7 @@ export interface AssessmentFormData {
 
   // FOR SQL QUERY TYPE
   sample_table?: SampleTable;
+  additionalTables?: SampleTable[];  // For SQL queries requiring multiple tables (JOINs)
   expected_query?: string;
   expected_result?: SampleTable;
 

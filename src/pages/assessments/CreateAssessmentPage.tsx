@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,6 +51,13 @@ export default function CreateAssessmentPage() {
   const [tableColumns, setTableColumns] = useState('id, name');
   const [tableRows, setTableRows] = useState('[{"id": 1, "name": "John"}]');
 
+  // Local state for Additional Tables (for JOINs)
+  const [additionalTables, setAdditionalTables] = useState<Array<{
+    name: string;
+    columns: string;
+    rows: string;
+  }>>([]);
+
   // Local state for Expected Result editing
   const [expectedColumns, setExpectedColumns] = useState('id, name');
   const [expectedRows, setExpectedRows] = useState('[{"id": 1, "name": "John"}]');
@@ -60,6 +67,26 @@ export default function CreateAssessmentPage() {
   };
 
   const isSqlType = formData.type === 'sql' || formData.type === 'sql_query';
+
+  // Add a new additional table
+  const addAdditionalTable = () => {
+    setAdditionalTables([
+      ...additionalTables,
+      { name: 'table_name', columns: 'id, name', rows: '[[1, "value"]]' }
+    ]);
+  };
+
+  // Remove an additional table
+  const removeAdditionalTable = (index: number) => {
+    setAdditionalTables(additionalTables.filter((_, i) => i !== index));
+  };
+
+  // Update an additional table field
+  const updateAdditionalTable = (index: number, field: 'name' | 'columns' | 'rows', value: string) => {
+    const updated = [...additionalTables];
+    updated[index][field] = value;
+    setAdditionalTables(updated);
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -78,6 +105,15 @@ export default function CreateAssessmentPage() {
             rows: parsedRows
           };
 
+          // Process additional tables (for JOINs)
+          if (additionalTables.length > 0) {
+            payload.additionalTables = additionalTables.map(table => ({
+              name: table.name,
+              columns: table.columns.split(',').map(c => c.trim()),
+              rows: JSON.parse(table.rows)
+            }));
+          }
+
           const parsedExpectedRows = JSON.parse(expectedRows);
           payload.expected_result = {
             columns: expectedColumns.split(',').map(c => c.trim()),
@@ -91,6 +127,7 @@ export default function CreateAssessmentPage() {
       } else {
         // Clear SQL fields if not SQL type
         delete payload.sample_table;
+        delete payload.additionalTables;
         delete payload.expected_query;
         delete payload.expected_result;
       }
@@ -298,6 +335,77 @@ export default function CreateAssessmentPage() {
                       onChange={(e) => setTableRows(e.target.value)}
                     />
                   </div>
+                </div>
+
+                {/* Additional Tables Section (for JOIN queries) */}
+                <div className="border p-4 rounded-md space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Additional Tables (for JOINs)</h3>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addAdditionalTable}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Table
+                    </Button>
+                  </div>
+
+                  {additionalTables.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No additional tables. Click "Add Table" to add tables for JOIN queries.
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {additionalTables.map((table, index) => (
+                        <div key={index} className="border p-4 rounded-md space-y-3 bg-muted/30">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium text-sm">Table {index + 1}</h4>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeAdditionalTable(index)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor={`addTable${index}Name`}>Table Name</Label>
+                              <Input
+                                id={`addTable${index}Name`}
+                                value={table.name}
+                                onChange={(e) => updateAdditionalTable(index, 'name', e.target.value)}
+                                placeholder="e.g., enrollments"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor={`addTable${index}Columns`}>Columns (comma separated)</Label>
+                              <Input
+                                id={`addTable${index}Columns`}
+                                value={table.columns}
+                                onChange={(e) => updateAdditionalTable(index, 'columns', e.target.value)}
+                                placeholder="e.g., id, student_id, course_id"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`addTable${index}Rows`}>Rows (JSON Array)</Label>
+                            <Textarea
+                              id={`addTable${index}Rows`}
+                              rows={3}
+                              className="font-mono text-sm"
+                              placeholder='[[1, 1, 1], [2, 2, 2]] or [{"id": 1, "student_id": 1}]'
+                              value={table.rows}
+                              onChange={(e) => updateAdditionalTable(index, 'rows', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="border p-4 rounded-md space-y-4">
