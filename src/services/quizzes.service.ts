@@ -1,218 +1,411 @@
 import {
-    collection,
-    doc,
-    getDocs,
-    getDoc,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    query,
-    where,
-    orderBy,
-    Timestamp,
-    setDoc
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  startAfter,
+  Timestamp,
+  DocumentSnapshot,
+  QueryConstraint,
+  collectionGroup
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Quiz, Question } from '@/types';
+import { Question } from '@/types';
 
-const QUIZZES_COLLECTION = 'course_quiz';
+const COURSE_QUIZ_COLLECTION = 'course_quiz';
 const QUESTIONS_SUBCOLLECTION = 'questions';
 
+export interface QuizQuestion extends Question {
+  courseId?: string;
+  difficulty?: 'EASY' | 'NORMAL' | 'HARD';
+}
+
+export interface PaginatedQuestions {
+  questions: QuizQuestion[];
+  lastDoc: DocumentSnapshot | null;
+  hasMore: boolean;
+}
+
 export const quizzesService = {
-    // Get all quizzes
-    getAll: async (): Promise<Quiz[]> => {
-        try {
-            const querySnapshot = await getDocs(collection(db, QUIZZES_COLLECTION));
-            const quizzes = await Promise.all(
-                querySnapshot.docs.map(async (docSnapshot) => {
-                    // Fetch questions for this quiz
-                    try {
-                        const questionsSnapshot = await getDocs(
-                            collection(db, QUIZZES_COLLECTION, docSnapshot.id, QUESTIONS_SUBCOLLECTION)
-                        );
-                        const questions = questionsSnapshot.docs.map(qDoc => ({
-                            id: qDoc.id,
-                            ...qDoc.data()
-                        })) as Question[];
+  // Get paginated questions with optional filters
+  // This fetches questions from course_quiz/{courseId}_quiz/questions
+  getPaginated: async (
+    options: {
+      courseId?: string;
+      moduleId?: string;
+      pageSize?: number;
+      lastDoc?: DocumentSnapshot | null;
+    } = {}
+  ): Promise<PaginatedQuestions> => {
+    try {
+      const {
+        courseId,
+        moduleId,
+        pageSize = 10,
+        lastDoc = null
+      } = options;
 
-                        return {
-                            ...docSnapshot.data(),
-                            id: docSnapshot.id,
-                            questions
-                        } as Quiz;
-                    } catch (error) {
-                        // If there's an error fetching questions, return quiz without questions
-                        console.warn(`Error fetching questions for quiz ${docSnapshot.id}:`, error);
-                        return {
-                            ...docSnapshot.data(),
-                            id: docSnapshot.id,
-                            questions: []
-                        } as unknown as Quiz;
-                    }
-                })
-            );
-            return quizzes;
-        } catch (error) {
-            console.error('Error getting quizzes:', error);
-            throw error;
+      let questions: QuizQuestion[] = [];
+      let newLastDoc: DocumentSnapshot | null = null;
+      let hasMore = false;
+
+      if (courseId) {
+        // Fetch from specific course's questions subcollection
+        const quizDocRef = doc(db, COURSE_QUIZ_COLLECTION, `${courseId}_quiz`);
+        const questionsRef = collection(quizDocRef, QUESTIONS_SUBCOLLECTION);
+
+        const constraints: QueryConstraint[] = [];
+
+        // Filter by module if provided
+        if (moduleId) {
+          constraints.push(where('module_id', '==', moduleId));
         }
-    },
 
-    // Get quizzes by module ID
-    getByModuleId: async (moduleId: string): Promise<Quiz[]> => {
+        // Add ordering
         try {
-            const q = query(collection(db, QUIZZES_COLLECTION), where('moduleId', '==', moduleId));
-            const querySnapshot = await getDocs(q);
-            return querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })) as Quiz[];
-        } catch (error) {
-            console.error('Error getting quizzes by module:', error);
-            throw error;
+          constraints.push(orderBy('order', 'asc'));
+        } catch (e) {
+          // If orderBy fails, continue without it
         }
-    },
 
-    // Get single quiz by ID
-    getById: async (id: string): Promise<Quiz | null> => {
+        // Add pagination
+        if (lastDoc) {
+          constraints.push(startAfter(lastDoc));
+        }
+        constraints.push(limit(pageSize + 1));
+
+        const q = constraints.length > 0
+          ? query(questionsRef, ...constraints)
+          : questionsRef;
+
+        const querySnapshot = await getDocs(q);
+        const docs = querySnapshot.docs;
+        hasMore = docs.length > pageSize;
+
+        const questionDocs = hasMore ? docs.slice(0, pageSize) : docs;
+        questions = questionDocs.map(doc => ({
+          id: doc.id,
+          courseId,
+          quizId: `${courseId}_quiz`,
+          ...doc.data()
+        })) as QuizQuestion[];
+
+        newLastDoc = questionDocs.length > 0 ? questionDocs[questionDocs.length - 1] : null;
+
+        // Debug logging
+        console.log('📊 Pagination Debug (specific course):', {
+          courseId,
+          moduleId,
+          requestedPageSize: pageSize,
+          totalDocsReceived: docs.length,
+          questionsReturned: questions.length,
+          hasMore,
+          lastDocId: newLastDoc?.id
+        });
+      } else {
+        // Fetch from all courses using collectionGroup
+        const constraints: QueryConstraint[] = [];
+
+        if (moduleId) {
+          constraints.push(where('module_id', '==', moduleId));
+        }
+
         try {
-            const docRef = doc(db, QUIZZES_COLLECTION, id);
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                // Fetch questions for this quiz
-                const questionsSnapshot = await getDocs(
-                    query(
-                        collection(db, QUIZZES_COLLECTION, id, QUESTIONS_SUBCOLLECTION),
-                        orderBy('order', 'asc')
-                    )
-                );
-                const questions = questionsSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                })) as Question[];
-
-                return { id: docSnap.id, ...docSnap.data(), questions } as Quiz;
-            }
-            return null;
-        } catch (error) {
-            console.error('Error getting quiz:', error);
-            throw error;
+          constraints.push(orderBy('order', 'asc'));
+        } catch (e) {
+          // Continue without ordering
         }
-    },
 
-    // Create new quiz
-    create: async (quizData: Omit<Quiz, 'id'>): Promise<string> => {
-        try {
-            const docRef = await addDoc(collection(db, QUIZZES_COLLECTION), {
-                ...quizData,
-                createdAt: Timestamp.now(),
-                updatedAt: Timestamp.now()
-            });
-            return docRef.id;
-        } catch (error) {
-            console.error('Error creating quiz:', error);
-            throw error;
+        if (lastDoc) {
+          constraints.push(startAfter(lastDoc));
         }
-    },
+        constraints.push(limit(pageSize + 1));
 
-    // Update quiz
-    update: async (id: string, quizData: Partial<Quiz>): Promise<void> => {
-        try {
-            const docRef = doc(db, QUIZZES_COLLECTION, id);
-            await updateDoc(docRef, {
-                ...quizData,
-                updatedAt: Timestamp.now()
-            });
-        } catch (error) {
-            console.error('Error updating quiz:', error);
-            throw error;
-        }
-    },
+        const q = query(collectionGroup(db, QUESTIONS_SUBCOLLECTION), ...constraints);
+        const querySnapshot = await getDocs(q);
 
-    // Delete quiz
-    delete: async (id: string): Promise<void> => {
-        try {
-            // First delete all questions in the subcollection
-            const questionsSnapshot = await getDocs(
-                collection(db, QUIZZES_COLLECTION, id, QUESTIONS_SUBCOLLECTION)
-            );
-            const deletePromises = questionsSnapshot.docs.map(questionDoc =>
-                deleteDoc(questionDoc.ref)
-            );
-            await Promise.all(deletePromises);
+        const docs = querySnapshot.docs;
+        hasMore = docs.length > pageSize;
 
-            // Then delete the quiz document
-            const docRef = doc(db, QUIZZES_COLLECTION, id);
-            await deleteDoc(docRef);
-        } catch (error) {
-            console.error('Error deleting quiz:', error);
-            throw error;
-        }
-    },
+        const questionDocs = hasMore ? docs.slice(0, pageSize) : docs;
+        questions = questionDocs.map(doc => {
+          // Extract courseId from the document path
+          // Path format: course_quiz/{courseId}_quiz/questions/{questionId}
+          const pathParts = doc.ref.path.split('/');
+          const quizDocId = pathParts[1]; // e.g., "java_quiz"
+          const courseId = quizDocId.replace('_quiz', ''); // e.g., "java"
 
-    // Add a question to a quiz
-    addQuestion: async (quizId: string, questionData: Omit<Question, 'id'>): Promise<string> => {
-        try {
-            const questionRef = await addDoc(
-                collection(db, QUIZZES_COLLECTION, quizId, QUESTIONS_SUBCOLLECTION),
-                questionData
-            );
-            return questionRef.id;
-        } catch (error) {
-            console.error('Error adding question:', error);
-            throw error;
-        }
-    },
+          return {
+            id: doc.id,
+            courseId,
+            quizId: quizDocId,
+            ...doc.data()
+          } as QuizQuestion;
+        });
 
-    // Update a question
-    updateQuestion: async (quizId: string, questionId: string, questionData: Partial<Question>): Promise<void> => {
-        try {
-            const questionRef = doc(db, QUIZZES_COLLECTION, quizId, QUESTIONS_SUBCOLLECTION, questionId);
-            await updateDoc(questionRef, questionData);
-        } catch (error) {
-            console.error('Error updating question:', error);
-            throw error;
-        }
-    },
+        newLastDoc = questionDocs.length > 0 ? questionDocs[questionDocs.length - 1] : null;
 
-    // Delete a question
-    deleteQuestion: async (quizId: string, questionId: string): Promise<void> => {
-        try {
-            const questionRef = doc(db, QUIZZES_COLLECTION, quizId, QUESTIONS_SUBCOLLECTION, questionId);
-            await deleteDoc(questionRef);
-        } catch (error) {
-            console.error('Error deleting question:', error);
-            throw error;
-        }
-    },
+        // Debug logging
+        console.log('📊 Pagination Debug (all courses):', {
+          moduleId,
+          requestedPageSize: pageSize,
+          totalDocsReceived: docs.length,
+          questionsReturned: questions.length,
+          hasMore,
+          lastDocId: newLastDoc?.id
+        });
+      }
 
-    // Get all questions for a quiz
-    getQuestions: async (quizId: string): Promise<Question[]> => {
-        try {
-            const q = query(
-                collection(db, QUIZZES_COLLECTION, quizId, QUESTIONS_SUBCOLLECTION),
-                orderBy('order', 'asc')
-            );
-            const querySnapshot = await getDocs(q);
-            return querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })) as Question[];
-        } catch (error) {
-            console.error('Error getting questions:', error);
-            throw error;
-        }
-    },
-
-    // Create a question with a specific ID (for the format: java_q1, java_q2, etc.)
-    createQuestionWithId: async (quizId: string, questionId: string, questionData: Omit<Question, 'id'>): Promise<void> => {
-        try {
-            const questionRef = doc(db, QUIZZES_COLLECTION, quizId, QUESTIONS_SUBCOLLECTION, questionId);
-            await setDoc(questionRef, questionData);
-        } catch (error) {
-            console.error('Error creating question with ID:', error);
-            throw error;
-        }
+      return {
+        questions,
+        lastDoc: newLastDoc,
+        hasMore
+      };
+    } catch (error) {
+      console.error('Error getting paginated questions:', error);
+      throw error;
     }
+  },
+
+  // Get all questions for a course (with optional module filter)
+  getQuestions: async (courseId: string, moduleFilter?: string): Promise<QuizQuestion[]> => {
+    try {
+      const quizRef = doc(db, COURSE_QUIZ_COLLECTION, `${courseId}_quiz`);
+      const questionsRef = collection(quizRef, QUESTIONS_SUBCOLLECTION);
+
+      let q = query(questionsRef);
+
+      // Filter by module if provided
+      if (moduleFilter && moduleFilter !== 'all') {
+        q = query(questionsRef, where('module_id', '==', moduleFilter));
+      }
+
+      // Try to order by order field
+      try {
+        q = query(questionsRef, orderBy('order', 'asc'));
+        if (moduleFilter && moduleFilter !== 'all') {
+          q = query(questionsRef, where('module_id', '==', moduleFilter), orderBy('order', 'asc'));
+        }
+      } catch (error) {
+        // If orderBy fails, continue without it
+        console.warn('OrderBy failed, fetching without ordering');
+      }
+
+      const snapshot = await getDocs(q);
+      const questions = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        courseId,
+        quizId: `${courseId}_quiz`,
+        ...doc.data()
+      })) as QuizQuestion[];
+
+      return questions;
+    } catch (error) {
+      console.error(`Error getting questions for course ${courseId}:`, error);
+      throw error;
+    }
+  },
+
+  // Get single question by ID
+  getById: async (courseId: string, questionId: string): Promise<QuizQuestion | null> => {
+    try {
+      const questionRef = doc(
+        db,
+        COURSE_QUIZ_COLLECTION,
+        `${courseId}_quiz`,
+        QUESTIONS_SUBCOLLECTION,
+        questionId
+      );
+      const docSnap = await getDoc(questionRef);
+
+      if (docSnap.exists()) {
+        return {
+          id: docSnap.id,
+          courseId,
+          quizId: `${courseId}_quiz`,
+          ...docSnap.data()
+        } as QuizQuestion;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting question:', error);
+      throw error;
+    }
+  },
+
+  // Add a new quiz question
+  addQuestion: async (courseId: string, questionData: Omit<QuizQuestion, 'id' | 'courseId' | 'quizId'>): Promise<string> => {
+    try {
+      // Validate required fields
+      if (!questionData.question) {
+        throw new Error('Question text is required');
+      }
+
+      if (!questionData.options || !Array.isArray(questionData.options) || questionData.options.length < 4) {
+        throw new Error('Four answer options are required');
+      }
+
+      if (
+        typeof questionData.correctOptionIndex !== 'number' ||
+        questionData.correctOptionIndex < 0 ||
+        questionData.correctOptionIndex >= questionData.options.length
+      ) {
+        throw new Error('Valid correct option index is required (0-3)');
+      }
+
+      if (!questionData.module_id) {
+        throw new Error('Module ID is required');
+      }
+
+      const quizRef = doc(db, COURSE_QUIZ_COLLECTION, `${courseId}_quiz`);
+      const questionsRef = collection(quizRef, QUESTIONS_SUBCOLLECTION);
+
+      const questionToAdd = {
+        question: questionData.question,
+        options: questionData.options,
+        correctOptionIndex: questionData.correctOptionIndex,
+        module_id: questionData.module_id,
+        difficulty: questionData.difficulty || 'NORMAL',
+        explanation: questionData.explanation || '',
+        order: questionData.order || 0,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
+      };
+
+      const newDoc = await addDoc(questionsRef, questionToAdd);
+
+      console.log(`Question added: ${newDoc.id} for course ${courseId}`);
+
+      return newDoc.id;
+    } catch (error) {
+      console.error(`Error adding question to course ${courseId}:`, error);
+      throw error;
+    }
+  },
+
+  // Update quiz question
+  updateQuestion: async (
+    courseId: string,
+    questionId: string,
+    updatedData: Partial<QuizQuestion>
+  ): Promise<void> => {
+    try {
+      const questionRef = doc(
+        db,
+        COURSE_QUIZ_COLLECTION,
+        `${courseId}_quiz`,
+        QUESTIONS_SUBCOLLECTION,
+        questionId
+      );
+
+      // Check if document exists
+      const docSnapshot = await getDoc(questionRef);
+      if (!docSnapshot.exists()) {
+        throw new Error('Question not found');
+      }
+
+      // Validate data if provided
+      if (updatedData.options && (!Array.isArray(updatedData.options) || updatedData.options.length < 4)) {
+        throw new Error('Four answer options are required');
+      }
+
+      if (
+        updatedData.correctOptionIndex !== undefined &&
+        (typeof updatedData.correctOptionIndex !== 'number' ||
+          updatedData.correctOptionIndex < 0 ||
+          updatedData.correctOptionIndex >= 4)
+      ) {
+        throw new Error('Valid correct option index is required (0-3)');
+      }
+
+      // Prepare data to update
+      const dataToUpdate: any = {
+        ...updatedData,
+        updatedAt: Timestamp.now()
+      };
+
+      // Remove fields that shouldn't be updated
+      delete dataToUpdate.id;
+      delete dataToUpdate.courseId;
+      delete dataToUpdate.quizId;
+      delete dataToUpdate.createdAt;
+
+      // Remove undefined values
+      Object.keys(dataToUpdate).forEach(
+        (key) => dataToUpdate[key] === undefined && delete dataToUpdate[key]
+      );
+
+      await updateDoc(questionRef, dataToUpdate);
+
+      console.log(`Question updated: ${questionId} for course ${courseId}`);
+    } catch (error) {
+      console.error(`Error updating question ${questionId} for course ${courseId}:`, error);
+      throw error;
+    }
+  },
+
+  // Delete quiz question
+  deleteQuestion: async (courseId: string, questionId: string): Promise<void> => {
+    try {
+      const questionRef = doc(
+        db,
+        COURSE_QUIZ_COLLECTION,
+        `${courseId}_quiz`,
+        QUESTIONS_SUBCOLLECTION,
+        questionId
+      );
+
+      // Check if document exists
+      const docSnapshot = await getDoc(questionRef);
+      if (!docSnapshot.exists()) {
+        throw new Error('Question not found');
+      }
+
+      await deleteDoc(questionRef);
+
+      console.log(`Question deleted: ${questionId} for course ${courseId}`);
+    } catch (error) {
+      console.error(`Error deleting question ${questionId} for course ${courseId}:`, error);
+      throw error;
+    }
+  },
+
+  // Get quiz statistics for a course
+  getStats: async (courseId: string): Promise<{
+    total: number;
+    byDifficulty: Record<string, number>;
+    byModule: Record<string, number>;
+  }> => {
+    try {
+      const questions = await quizzesService.getQuestions(courseId);
+
+      const stats = {
+        total: questions.length,
+        byDifficulty: {} as Record<string, number>,
+        byModule: {} as Record<string, number>
+      };
+
+      questions.forEach((question) => {
+        // Count by difficulty
+        const difficulty = question.difficulty || 'NORMAL';
+        stats.byDifficulty[difficulty] = (stats.byDifficulty[difficulty] || 0) + 1;
+
+        // Count by module
+        const module = question.module_id || 'Unassigned';
+        stats.byModule[module] = (stats.byModule[module] || 0) + 1;
+      });
+
+      return stats;
+    } catch (error) {
+      console.error(`Error getting quiz stats for course ${courseId}:`, error);
+      throw error;
+    }
+  }
 };

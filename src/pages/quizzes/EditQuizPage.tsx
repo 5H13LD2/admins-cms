@@ -1,73 +1,73 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCourses } from '@/hooks/useCourses';
+import { Card } from '@/components/ui/card';
+import { useQuestion, useQuestionActions } from '@/hooks/useQuizzes';
 import { useModules } from '@/hooks/useModules';
-import { useQuestionActions } from '@/hooks/useQuizzes';
 import { useToast } from '@/hooks/useToast';
 
-export default function CreateQuizPage() {
+export default function EditQuizPage() {
+  const { courseId, questionId } = useParams<{ courseId: string; questionId: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { courses } = useCourses();
-  const { modules } = useModules();
+  const toast = useToast();
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [courseId, setCourseId] = useState('');
-  const [moduleId, setModuleId] = useState('');
-  const [difficulty, setDifficulty] = useState<'EASY' | 'NORMAL' | 'HARD'>('NORMAL');
-  const [order, setOrder] = useState(0);
+  const { question, loading: questionLoading, refresh } = useQuestion(courseId, questionId);
+  const { updateQuestion: updateQuestionMutation, loading: updateLoading } = useQuestionActions(courseId || '');
+  const { modules } = useModules();
 
   const [questionText, setQuestionText] = useState('');
   const [options, setOptions] = useState<string[]>(['', '', '', '']);
   const [correctOptionIndex, setCorrectOptionIndex] = useState(0);
   const [explanation, setExplanation] = useState('');
+  const [moduleId, setModuleId] = useState('');
+  const [difficulty, setDifficulty] = useState<'EASY' | 'NORMAL' | 'HARD'>('NORMAL');
+  const [order, setOrder] = useState(0);
 
-  const { addQuestion } = useQuestionActions(courseId);
+  // Load question data when available
+  useEffect(() => {
+    if (question) {
+      setQuestionText(question.question);
+      setOptions(question.options || ['', '', '', '']);
+      setCorrectOptionIndex(question.correctOptionIndex);
+      setExplanation(question.explanation || '');
+      setModuleId(question.module_id || '');
+      setDifficulty(question.difficulty || 'NORMAL');
+      setOrder(question.order || 0);
+    }
+  }, [question]);
 
-  const filteredModules = modules.filter(m => m.courseId === courseId);
-
-  const handleOptionChange = (index: number, value: string) => {
-    const newOptions = [...options];
-    newOptions[index] = value;
-    setOptions(newOptions);
-  };
+  // Filter modules by course
+  const filteredModules = modules.filter(module => module.courseId === courseId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!courseId || !questionId) return;
+
     // Validation
-    if (!courseId) {
-      toast({ title: 'Error', description: 'Please select a course', variant: 'destructive' });
-      return;
-    }
-
-    if (!moduleId) {
-      toast({ title: 'Error', description: 'Please select a module', variant: 'destructive' });
-      return;
-    }
-
     if (!questionText.trim()) {
-      toast({ title: 'Error', description: 'Question text is required', variant: 'destructive' });
+      toast.error('Question text is required');
       return;
     }
 
     if (options.some(opt => !opt.trim())) {
-      toast({ title: 'Error', description: 'All four options must be filled', variant: 'destructive' });
+      toast.error('All four options must be filled');
+      return;
+    }
+
+    if (!moduleId) {
+      toast.error('Module is required');
       return;
     }
 
     try {
-      setIsSubmitting(true);
-
-      await addQuestion({
+      await updateQuestionMutation(questionId, {
         question: questionText,
         options,
         correctOptionIndex,
@@ -77,15 +77,36 @@ export default function CreateQuizPage() {
         order
       });
 
-      toast({ title: 'Success', description: 'Quiz question added successfully!' });
+      toast.success('Question updated successfully');
       navigate('/quizzes/manage');
     } catch (error) {
-      console.error('Error adding question:', error);
-      toast({ title: 'Error', description: 'Failed to add question. Please try again.', variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error updating question:', error);
+      toast.error('Failed to update question. Please try again.');
     }
   };
+
+  const handleOptionChange = (index: number, value: string) => {
+    const newOptions = [...options];
+    newOptions[index] = value;
+    setOptions(newOptions);
+  };
+
+  if (questionLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!question) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <p className="text-muted-foreground mb-4">Question not found</p>
+        <Button onClick={() => navigate('/quizzes/manage')}>Back to Quiz Management</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500 max-w-4xl mx-auto">
@@ -94,53 +115,14 @@ export default function CreateQuizPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Add Quiz Question</h1>
-          <p className="text-muted-foreground mt-1">Create a new quiz question for a module</p>
+          <h1 className="text-3xl font-bold text-foreground">Edit Quiz Question</h1>
+          <p className="text-muted-foreground mt-1">Update question details</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit}>
         <Card className="p-6">
           <div className="space-y-6">
-            {/* Course and Module Selection */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="course">Course *</Label>
-                <Select value={courseId} onValueChange={(value) => {
-                  setCourseId(value);
-                  setModuleId(''); // Reset module when course changes
-                }} required>
-                  <SelectTrigger id="course">
-                    <SelectValue placeholder="Select course" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {courses.map((course) => (
-                      <SelectItem key={course.id} value={course.id}>
-                        {course.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="module">Module *</Label>
-                <Select value={moduleId} onValueChange={setModuleId} required disabled={!courseId}>
-                  <SelectTrigger id="module">
-                    <SelectValue placeholder={courseId ? "Select module" : "Select course first"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredModules.map((module) => (
-                      <SelectItem key={module.id} value={module.id}>
-                        {module.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Question Text */}
             <div>
               <Label htmlFor="questionText">Question *</Label>
               <Textarea
@@ -153,7 +135,6 @@ export default function CreateQuizPage() {
               />
             </div>
 
-            {/* Answer Options */}
             <div className="space-y-4">
               <Label>Answer Options *</Label>
               {options.map((option, index) => (
@@ -182,8 +163,23 @@ export default function CreateQuizPage() {
               ))}
             </div>
 
-            {/* Difficulty and Order */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="module">Module *</Label>
+                <Select value={moduleId} onValueChange={setModuleId} required>
+                  <SelectTrigger id="module">
+                    <SelectValue placeholder="Select module" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredModules.map((module) => (
+                      <SelectItem key={module.id} value={module.id}>
+                        {module.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div>
                 <Label htmlFor="difficulty">Difficulty *</Label>
                 <Select value={difficulty} onValueChange={(value: any) => setDifficulty(value)} required>
@@ -206,12 +202,10 @@ export default function CreateQuizPage() {
                   min="0"
                   value={order}
                   onChange={(e) => setOrder(parseInt(e.target.value) || 0)}
-                  placeholder="0"
                 />
               </div>
             </div>
 
-            {/* Explanation */}
             <div>
               <Label htmlFor="explanation">Explanation (Optional)</Label>
               <Textarea
@@ -223,19 +217,18 @@ export default function CreateQuizPage() {
               />
             </div>
 
-            {/* Submit Buttons */}
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => navigate(-1)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
+              <Button type="submit" disabled={updateLoading}>
+                {updateLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Adding Question...
+                    Saving...
                   </>
                 ) : (
-                  'Add Question'
+                  'Save Changes'
                 )}
               </Button>
             </div>

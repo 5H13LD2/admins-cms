@@ -17,6 +17,7 @@ import CreateLessonPage from './pages/lessons/CreateLessonPage';
 import QuizzesPage from './pages/quizzes/QuizzesPage';
 import QuizDetailsPage from './pages/quizzes/QuizDetailsPage';
 import CreateQuizPage from './pages/quizzes/CreateQuizPage';
+import EditQuizPage from './pages/quizzes/EditQuizPage';
 import QuizManagementPage from './pages/quizzes/QuizManagementPage';
 import AssessmentsPage from './pages/assessments/AssessmentsPage';
 import AssessmentDetailsPage from './pages/assessments/AssessmentDetailsPage';
@@ -43,54 +44,55 @@ function App() {
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Toaster />
           <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<LoginPage />} />
+            {/* Public Routes */}
+            <Route path="/login" element={<LoginPage />} />
 
-          {/* Protected Routes */}
-          <Route path="/" element={<DashboardLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="courses" element={<CoursesPage />} />
-            <Route path="courses/create" element={<CreateCoursePage />} />
-            <Route path="courses/:id/edit" element={<EditCoursePage />} />
-            <Route path="courses/:id" element={<CourseDetailsPage />} />
+            {/* Protected Routes */}
+            <Route path="/" element={<DashboardLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="courses" element={<CoursesPage />} />
+              <Route path="courses/create" element={<CreateCoursePage />} />
+              <Route path="courses/:id/edit" element={<EditCoursePage />} />
+              <Route path="courses/:id" element={<CourseDetailsPage />} />
 
-            <Route path="modules" element={<ModulesPage />} />
-            <Route path="modules/create" element={<CreateModulePage />} />
-            <Route path="modules/:moduleId/edit" element={<EditModulePage />} />
-            <Route path="modules/:moduleId" element={<ModuleDetailsPage />} />
+              <Route path="modules" element={<ModulesPage />} />
+              <Route path="modules/create" element={<CreateModulePage />} />
+              <Route path="modules/:moduleId/edit" element={<EditModulePage />} />
+              <Route path="modules/:moduleId" element={<ModuleDetailsPage />} />
 
-            <Route path="lessons" element={<LessonsPage />} />
-            <Route path="lessons/create" element={<CreateLessonPage />} />
-            <Route path="lessons/:lessonId" element={<LessonDetailsPage />} />
+              <Route path="lessons" element={<LessonsPage />} />
+              <Route path="lessons/create" element={<CreateLessonPage />} />
+              <Route path="lessons/:lessonId" element={<LessonDetailsPage />} />
 
-            <Route path="quizzes" element={<QuizzesPage />} />
-            <Route path="quizzes/create" element={<CreateQuizPage />} />
-            <Route path="quizzes/manage" element={<QuizManagementPage />} />
-            <Route path="quizzes/:quizId" element={<QuizDetailsPage />} />
+              <Route path="quizzes" element={<QuizzesPage />} />
+              <Route path="quizzes/create" element={<CreateQuizPage />} />
+              <Route path="quizzes/:courseId/:questionId/edit" element={<EditQuizPage />} />
+              <Route path="quizzes/manage" element={<QuizManagementPage />} />
+              <Route path="quizzes/:courseId/:questionId" element={<QuizDetailsPage />} />
 
-            <Route path="assessments" element={<AssessmentsPage />} />
-            <Route path="assessments/create" element={<CreateAssessmentPage />} />
-            <Route path="assessments/:assessmentId" element={<AssessmentDetailsPage />} />
+              <Route path="assessments" element={<AssessmentsPage />} />
+              <Route path="assessments/create" element={<CreateAssessmentPage />} />
+              <Route path="assessments/:assessmentId" element={<AssessmentDetailsPage />} />
 
-            <Route path="users" element={<UsersPage />} />
-            <Route path="users/:userId" element={<UserDetailsPage />} />
-            <Route path="users/:userId/progress" element={<UserProgressPage />} />
+              <Route path="users" element={<UsersPage />} />
+              <Route path="users/:userId" element={<UserDetailsPage />} />
+              <Route path="users/:userId/progress" element={<UserProgressPage />} />
 
-            <Route path="leaderboard" element={<LeaderboardPage />} />
+              <Route path="leaderboard" element={<LeaderboardPage />} />
 
-            <Route path="achievements" element={<AchievementsPage />} />
-            <Route path="achievements/create" element={<CreateAchievementPage />} />
+              <Route path="achievements" element={<AchievementsPage />} />
+              <Route path="achievements/create" element={<CreateAchievementPage />} />
 
-            <Route path="daily-problems" element={<DailyProblemsPage />} />
-            <Route path="daily-problems/create" element={<CreateDailyProblemPage />} />
+              <Route path="daily-problems" element={<DailyProblemsPage />} />
+              <Route path="daily-problems/create" element={<CreateDailyProblemPage />} />
 
-            <Route path="feedback" element={<FeedbackPage />} />
+              <Route path="feedback" element={<FeedbackPage />} />
 
-            <Route path="analytics" element={<AnalyticsPage />} />
-            <Route path="analytics/reports" element={<ReportsPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="analytics/reports" element={<ReportsPage />} />
 
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
           </Routes>
         </Router>
       </ToastProvider>
