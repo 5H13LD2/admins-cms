@@ -1,0 +1,249 @@
+courses.service.ts:60  Error creating course: FirebaseError: Missing or insufficient permissions.
+create @ courses.service.ts:60
+await in create
+handleSubmit @ CreateCoursePage.tsx:41
+callCallback2 @ react-dom.development.js:4164
+invokeGuardedCallbackDev @ react-dom.development.js:4213
+invokeGuardedCallback @ react-dom.development.js:4277
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:4291
+executeDispatch @ react-dom.development.js:9041
+processDispatchQueueItemsInOrder @ react-dom.development.js:9073
+processDispatchQueue @ react-dom.development.js:9086
+dispatchEventsForPlugins @ react-dom.development.js:9097
+(anonymous) @ react-dom.development.js:9288
+batchedUpdates$1 @ react-dom.development.js:26179
+batchedUpdates @ react-dom.development.js:3991
+dispatchEventForPluginEventSystem @ react-dom.development.js:9287
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ react-dom.development.js:6465
+dispatchEvent @ react-dom.development.js:6457
+dispatchDiscreteEvent @ react-dom.development.js:6430
+CreateCoursePage.tsx:44  Error creating course: FirebaseError: Missing or insufficient permissions.
+
+add this to my services, hooks, and ui of pages also       
+createdAt: courseData.createdAt || null,
+          updatedAt: courseData.updatedAt || null enrolledUsers: courseData.enrolledUsers || [],
+
+//module service
+    return {
+      id: moduleData.id || docId,
+      moduleId: moduleData.moduleId || moduleData.id || docId,
+      courseId: moduleData.courseId || courseId,
+      title: moduleData.title || '',
+      description: moduleData.description || '',
+      order: Number(moduleData.order) || 0,
+      estimatedMinutes: Number(moduleData.estimatedMinutes || moduleData.estimatedMinutess) || 0,
+      totalLessons: Number(moduleData.totalLessons) || 0,
+      isUnlocked: Boolean(moduleData.isUnlocked),
+      createdAt: moduleData.createdAt,
+      updatedAt: moduleData.updatedAt,
+      source: source
+    };
+      const newModule = {
+        moduleId: generatedModuleId,
+        courseId,
+        title: title.trim(),
+        description: description?.trim() || this.#DEFAULT_MODULE_VALUES.description,
+        order: Number(order) || this.#DEFAULT_MODULE_VALUES.order,
+        estimatedMinutes: Number(estimatedMinutes) || this.#DEFAULT_MODULE_VALUES.estimatedMinutes,
+        totalLessons: this.#DEFAULT_MODULE_VALUES.totalLessons,
+        isUnlocked: Boolean(isUnlocked) || this.#DEFAULT_MODULE_VALUES.isUnlocked,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+    module id's pages
+
+    import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  Timestamp,
+  writeBatch
+} from 'firebase/firestore';
+import { db } from './firebase';
+import { Module } from '@/types';
+
+const MODULES_COLLECTION = 'modules';
+const COURSES_COLLECTION = 'courses';
+
+export const modulesService = {
+  // Get all modules for a specific course
+  getByCourseId: async (courseId: string): Promise<Module[]> => {
+    try {
+      const q = query(
+        collection(db, MODULES_COLLECTION),
+        where('courseId', '==', courseId),
+        orderBy('order', 'asc')
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Module[];
+    } catch (error) {
+      console.error('Error getting modules:', error);
+      throw error;
+    }
+  },
+
+  // Get single module by ID
+  getById: async (moduleId: string): Promise<Module | null> => {
+    try {
+      const docRef = doc(db, MODULES_COLLECTION, moduleId);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as Module;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting module:', error);
+      throw error;
+    }
+  },
+
+  // Get module with course validation
+  getByIdWithCourse: async (courseId: string, moduleId: string): Promise<Module | null> => {
+    try {
+      const module = await modulesService.getById(moduleId);
+
+      if (module && module.courseId === courseId) {
+        return module;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting module with course validation:', error);
+      throw error;
+    }
+  },
+
+  // Create new module
+  create: async (moduleData: Omit<Module, 'id'>): Promise<string> => {
+    try {
+      const batch = writeBatch(db);
+
+      // Add the module
+      const moduleRef = doc(collection(db, MODULES_COLLECTION));
+      batch.set(moduleRef, {
+        ...moduleData,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
+      });
+
+      // Update course module count
+      const courseRef = doc(db, COURSES_COLLECTION, moduleData.courseId);
+      const courseSnap = await getDoc(courseRef);
+
+      if (courseSnap.exists()) {
+        const currentModuleCount = courseSnap.data().moduleCount || 0;
+        batch.update(courseRef, {
+          moduleCount: currentModuleCount + 1,
+          updatedAt: Timestamp.now()
+        });
+      }
+
+      await batch.commit();
+      return moduleRef.id;
+    } catch (error) {
+      console.error('Error creating module:', error);
+      throw error;
+    }
+  },
+
+  // Update module
+  update: async (moduleId: string, moduleData: Partial<Module>): Promise<void> => {
+    try {
+      const docRef = doc(db, MODULES_COLLECTION, moduleId);
+      await updateDoc(docRef, {
+        ...moduleData,
+        updatedAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Error updating module:', error);
+      throw error;
+    }
+  },
+
+  // Delete module
+  delete: async (moduleId: string): Promise<void> => {
+    try {
+      const batch = writeBatch(db);
+
+      // Get the module to find its courseId
+      const moduleSnap = await getDoc(doc(db, MODULES_COLLECTION, moduleId));
+
+      if (moduleSnap.exists()) {
+        const moduleData = moduleSnap.data();
+        const courseId = moduleData.courseId;
+
+        // Delete the module
+        batch.delete(doc(db, MODULES_COLLECTION, moduleId));
+
+        // Update course module count
+        const courseRef = doc(db, COURSES_COLLECTION, courseId);
+        const courseSnap = await getDoc(courseRef);
+
+        if (courseSnap.exists()) {
+          const currentModuleCount = courseSnap.data().moduleCount || 0;
+          batch.update(courseRef, {
+            moduleCount: Math.max(0, currentModuleCount - 1),
+            updatedAt: Timestamp.now()
+          });
+        }
+
+        await batch.commit();
+      }
+    } catch (error) {
+      console.error('Error deleting module:', error);
+      throw error;
+    }
+  },
+
+  // Delete all modules for a course (useful when deleting a course)
+  deleteAllByCourseId: async (courseId: string): Promise<void> => {
+    try {
+      const q = query(
+        collection(db, MODULES_COLLECTION),
+        where('courseId', '==', courseId)
+      );
+      const querySnapshot = await getDocs(q);
+
+      const batch = writeBatch(db);
+      querySnapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+    } catch (error) {
+      console.error('Error deleting modules for course:', error);
+      throw error;
+    }
+  },
+
+  // Reorder modules
+  reorder: async (moduleUpdates: { id: string; order: number }[]): Promise<void> => {
+    try {
+      const batch = writeBatch(db);
+
+      moduleUpdates.forEach(({ id, order }) => {
+        const docRef = doc(db, MODULES_COLLECTION, id);
+        batch.update(docRef, {
+          order,
+          updatedAt: Timestamp.now()
+        });
+      });
+
+      await batch.commit();
+    } catch (error) {
+      console.error('Error reordering modules:', error);
+      throw error;
+    }
+  }
+};

@@ -7,3 +7,4 @@ export * from './assessment.types';
 export * from './user.types';
 export * from './achievement.types';
 export * from './firebase.types';
+export * from './analytics.types';
