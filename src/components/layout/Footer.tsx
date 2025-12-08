@@ -1,8 +1,8 @@
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-gray-200 px-6 py-4 mt-auto">
-      <div className="flex items-center justify-between text-sm text-gray-600">
-        <p>&copy; {new Date().getFullYear()} TechLaunch CMS. All rights reserved.</p>
+    <footer className="bg-card border-t border-border px-6 py-4 mt-auto">
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <p>&copy; {new Date().getFullYear()} Jerico Techlaunch Dev Inc. All rights reserved.</p>
         <div className="flex items-center gap-4">
           <a href="#" className="hover:text-primary transition-colors">
             Privacy Policy

@@ -12,7 +12,7 @@ interface BreadcrumbNavProps {
   className?: string;
 }
 
-export default function BreadcrumbNav({ isSidebarHidden = false, className }: BreadcrumbNavProps) {
+export default function BreadcrumbNav({ className }: BreadcrumbNavProps) {
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter((x) => x);
 
@@ -50,8 +50,7 @@ export default function BreadcrumbNav({ isSidebarHidden = false, className }: Br
   return (
     <nav
       className={cn(
-        'flex items-center space-x-2 text-sm mb-6 transition-all duration-300 ease-in-out',
-        isSidebarHidden ? 'ml-0' : '',
+        'flex items-center space-x-2 text-sm mb-6',
         className
       )}
       aria-label="Breadcrumb"

@@ -13,13 +13,13 @@ function DashboardContent() {
   return (
     <div
       className={cn(
-        'flex h-screen transition-colors',
+        'flex h-screen overflow-hidden transition-colors',
         theme === 'dark' ? 'bg-gray-950 text-gray-100' : 'bg-muted/40 text-gray-900',
       )}
       data-theme={theme}
     >
-      <Sidebar className={cn(isSidebarHidden ? '-ml-64' : '')} />
-      <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300">
+      <Sidebar isCollapsed={isSidebarHidden} />
+      <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
         <main className="flex-1 overflow-y-auto p-6">
           <BreadcrumbNav isSidebarHidden={isSidebarHidden} />

@@ -39,6 +39,7 @@ import SettingsPage from './pages/settings/SettingsPage';
 import LoginPage from './pages/auth/LoginPage';
 import EditCoursePage from './pages/courses/EditCoursePage';
 import MigrationPage from './pages/admin/MigrationPage';
+import ProfilePage from './pages/profile/ProfilePage';
 import { AuthProvider } from './components/auth/AuthProvider';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
@@ -105,6 +106,7 @@ function App() {
 
                 <Route path="admin/migrations" element={<MigrationPage />} />
 
+                <Route path="profile" element={<ProfilePage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
             </Routes>
