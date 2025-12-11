@@ -49,7 +49,7 @@ export default function Sidebar({ className, isCollapsed = false }: SidebarProps
     <aside
       className={cn(
         "bg-card border-r-2 border-border h-screen overflow-hidden relative group flex flex-col",
-        isExpanded ? "w-64" : "w-16",
+        isExpanded ? "w-56" : "w-16",
         // Only animate width on hover, not on collapse toggle
         isCollapsed && "transition-[width] duration-300 ease-in-out",
         className
@@ -59,18 +59,18 @@ export default function Sidebar({ className, isCollapsed = false }: SidebarProps
     >
       {/* Header */}
       <div className={cn(
-        "p-6 transition-all duration-300 border-b border-border",
-        !isExpanded && "px-3 py-4"
+        "transition-all duration-300 border-b border-border flex-shrink-0",
+        isExpanded ? "p-4" : "px-3 py-3"
       )}>
         <h1 className={cn(
-          "text-2xl font-bold text-primary transition-all duration-300",
-          isExpanded ? "opacity-100" : "opacity-0 text-center text-base"
+          "font-bold text-primary transition-all duration-300",
+          isExpanded ? "text-xl opacity-100" : "opacity-0 text-center text-sm"
         )}>
           {isExpanded ? 'TechLaunch' : 'TL'}
         </h1>
         <p className={cn(
-          "text-sm text-muted-foreground transition-all duration-300 overflow-hidden",
-          isExpanded ? "opacity-100 mt-1" : "opacity-0 h-0"
+          "text-xs text-muted-foreground transition-all duration-300 overflow-hidden",
+          isExpanded ? "opacity-100 mt-0.5" : "opacity-0 h-0"
         )}>
           CMS Dashboard
         </p>
@@ -78,10 +78,10 @@ export default function Sidebar({ className, isCollapsed = false }: SidebarProps
 
       {/* Navigation */}
       <nav className={cn(
-        "pb-6",
-        isExpanded ? "px-3" : "px-2"
+        "flex-1 overflow-y-auto py-3",
+        isExpanded ? "px-2" : "px-1.5"
       )}>
-        <div className="pt-4">
+        <div className="space-y-0.5">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -91,16 +91,16 @@ export default function Sidebar({ className, isCollapsed = false }: SidebarProps
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center rounded-lg mb-1 transition-all duration-300 relative group/item",
-                  isExpanded ? "gap-3 px-3 py-2.5" : "justify-center px-2 py-2.5",
+                  "flex items-center rounded-lg transition-all duration-300 relative group/item",
+                  isExpanded ? "gap-2.5 px-3 py-2" : "justify-center px-2 py-2",
                   isActive
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 )}
               >
-                <Icon className="h-5 w-5 min-w-[1.25rem] flex-shrink-0" />
+                <Icon className="h-4 w-4 min-w-[1rem] flex-shrink-0" />
                 <span className={cn(
-                  "font-medium transition-all duration-300 whitespace-nowrap",
+                  "text-sm font-medium transition-all duration-300 whitespace-nowrap",
                   isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0 overflow-hidden"
                 )}>
                   {item.label}
