@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import Snowfall from '@/components/common/Snowfall';
 import { Loader2, CheckCircle, AlertCircle, Database, Shield, UserCog, Calendar, Code2, MessageSquare } from 'lucide-react';
 import { migrateModuleCount } from '@/scripts/migrateModuleCount';
 import { migrateDailyProblems } from '@/scripts/migrateDailyProblems';
@@ -170,6 +171,7 @@ export default function MigrationPage() {
 
     return (
         <div className="animate-in fade-in zoom-in-95 duration-500">
+            <Snowfall />
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-foreground">Database Migrations</h1>
                 <p className="text-muted-foreground mt-1">

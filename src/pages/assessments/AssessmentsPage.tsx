@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Filter, Plus, Loader2 } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 
 import SearchBar from '@/components/common/SearchBar';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,7 @@ export default function AssessmentsPage() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
-
+      <Snowfall />
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div>

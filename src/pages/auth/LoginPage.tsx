@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { BookOpen, BarChart2, ClipboardCheck } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 
 const LoginPage = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -32,6 +33,7 @@ const LoginPage = () => {
         backgroundRepeat: 'no-repeat',
       }}
     >
+      <Snowfall />
       {/* overlay to improve readability */}
       <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" aria-hidden="true" />
 

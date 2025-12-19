@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Mail, Users, Award, BookOpen, Settings } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -79,7 +80,7 @@ export default function UserDetailsPage() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
-
+      <Snowfall />
       <div className="flex items-center gap-4 mb-6">
         <Link to="/users">
           <Button variant="ghost" size="icon">

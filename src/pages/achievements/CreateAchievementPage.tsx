@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Snowfall from '@/components/common/Snowfall';
 
 export default function CreateAchievementPage() {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ export default function CreateAchievementPage() {
 
   return (
     <div>
-
+      <Snowfall />
       <div className="flex items-center gap-4 mb-6">
         <Link to="/achievements">
           <Button variant="ghost" size="icon">

@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Snowfall from '@/components/common/Snowfall';
 import { useReportSummaries } from '@/hooks/useAnalytics';
 import { Loader2 } from 'lucide-react';
 
@@ -27,7 +28,7 @@ export default function ReportsPage() {
 
   return (
     <div>
-
+      <Snowfall />
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Reports</h1>

@@ -14,6 +14,7 @@ import { useCourses } from '@/hooks/useCourses';
 import { useAssessments } from '@/hooks/useAssessments';
 import { useFeedback } from '@/hooks/useFeedback';
 import { formatDistanceToNow } from 'date-fns';
+import Snowfall from '@/components/common/Snowfall';
 
 export default function Dashboard() {
   const { users, fetchUsers } = useUsers();
@@ -125,6 +126,7 @@ export default function Dashboard() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
+      <Snowfall />
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground mt-1">Welcome to TechLaunch CMS</p>

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { CalendarDays, Plus, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import Snowfall from '@/components/common/Snowfall';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +48,7 @@ export default function DailyProblemsPage() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
-
+      <Snowfall />
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Daily Coding Problems</h1>

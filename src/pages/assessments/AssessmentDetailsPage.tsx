@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, BugPlay, Hammer, Database, Loader2 } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -66,6 +67,7 @@ export default function AssessmentDetailsPage() {
 
   return (
     <div>
+      <Snowfall />
       <div className="flex items-center gap-4 mb-6">
         <Link to="/assessments">
           <Button variant="ghost" size="icon">

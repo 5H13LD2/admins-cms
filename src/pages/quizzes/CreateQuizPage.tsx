@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -89,6 +90,7 @@ export default function CreateQuizPage() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500 max-w-4xl mx-auto">
+      <Snowfall />
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />

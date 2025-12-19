@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -175,6 +176,7 @@ export default function EditAssessmentPage() {
 
     return (
         <div>
+            <Snowfall />
             <div className="flex items-center gap-4 mb-6">
                 <Link to={`/assessments/${assessmentId}`}>
                     <Button variant="ghost" size="icon">

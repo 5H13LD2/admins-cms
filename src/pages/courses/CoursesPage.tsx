@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import SearchBar from '@/components/common/SearchBar';
 import { useCourses } from '@/hooks/useCourses';
 import CourseCard from '@/components/cards/CourseCard';
+import Snowfall from '@/components/common/Snowfall';
 
 export default function CoursesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,6 +39,7 @@ export default function CoursesPage() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
+      <Snowfall />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Courses</h1>

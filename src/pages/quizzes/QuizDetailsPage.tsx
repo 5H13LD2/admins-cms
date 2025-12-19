@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -75,6 +76,7 @@ export default function QuizDetailsPage() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500 max-w-4xl mx-auto">
+      <Snowfall />
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" size="icon" onClick={() => navigate(-1)}>

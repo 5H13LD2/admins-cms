@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -9,6 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { dummyLeaderboard, dummyUsers } from '@/data/dummyData';
+import Snowfall from '@/components/common/Snowfall';
 
 const userMap = dummyUsers.reduce<Record<string, { name: string; avatar?: string }>>(
   (acc, user) => {
@@ -21,7 +21,7 @@ const userMap = dummyUsers.reduce<Record<string, { name: string; avatar?: string
 export default function LeaderboardPage() {
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
-
+      <Snowfall />
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">Leaderboard</h1>
         <p className="text-muted-foreground mt-1">Friendly competition across the community</p>

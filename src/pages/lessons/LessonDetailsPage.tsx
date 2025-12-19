@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookMarked, Clock, Video, Loader2, AlertCircle, BookOpen } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -114,6 +115,7 @@ export default function LessonDetailsPage() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
+      <Snowfall />
       <div className="flex items-center gap-4 mb-6">
         <Link to="/lessons">
           <Button variant="ghost" size="icon">

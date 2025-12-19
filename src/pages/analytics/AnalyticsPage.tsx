@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import Snowfall from '@/components/common/Snowfall';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { Loader2, MousePointerClick, ChevronRight } from 'lucide-react';
 import AnalyticsDetailModal from '@/components/analytics/AnalyticsDetailModal';
@@ -97,7 +98,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
-
+      <Snowfall />
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
         <p className="text-muted-foreground mt-1">

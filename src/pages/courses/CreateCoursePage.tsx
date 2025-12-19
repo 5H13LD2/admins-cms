@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -72,6 +73,7 @@ export default function CreateCoursePage() {
 
   return (
     <div>
+      <Snowfall />
       <div className="flex items-center gap-4 mb-6">
         <Link to="/courses">
           <Button variant="ghost" size="icon">

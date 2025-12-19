@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -141,6 +142,7 @@ export default function EditDailyProblemPage() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-300">
+      <Snowfall />
       <div className="flex items-center gap-4 mb-6">
         <Link to="/daily-problems">
           <Button variant="ghost" size="icon">

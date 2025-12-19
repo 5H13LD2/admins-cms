@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Layers, Clock, BookOpen, Plus, Loader2, AlertCircle } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 
 import SearchBar from '@/components/common/SearchBar';
 import Pagination from '@/components/common/Pagination';
@@ -80,7 +81,7 @@ export default function ModulesPage() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
-
+      <Snowfall />
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div>

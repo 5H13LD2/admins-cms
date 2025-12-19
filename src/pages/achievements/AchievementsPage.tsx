@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { dummyAchievements } from '@/data/dummyData';
+import Snowfall from '@/components/common/Snowfall';
 
 export default function AchievementsPage() {
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
-
+      <Snowfall />
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div>

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pencil, Trash2, Plus, Loader2, ChevronRight } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 
 import SearchBar from '@/components/common/SearchBar';
 import { Button } from '@/components/ui/button';
@@ -119,6 +120,7 @@ export default function QuizManagementPage() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
+      <Snowfall />
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Quiz Questions Management</h1>

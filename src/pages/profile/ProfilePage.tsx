@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mail, Phone, MapPin, Calendar, Briefcase, User, Edit } from 'lucide-react';
+import Snowfall from '@/components/common/Snowfall';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 
 export default function ProfilePage() {
@@ -20,6 +21,7 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      <Snowfall />
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Snowfall from '@/components/common/Snowfall';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -175,6 +176,7 @@ export default function FeedbackPage() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-500">
+      <Snowfall />
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">Feedback</h1>
         <p className="text-muted-foreground mt-1">Direct learner signal for the product team</p>
