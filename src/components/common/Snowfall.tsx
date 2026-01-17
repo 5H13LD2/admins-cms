@@ -13,7 +13,7 @@ export default function Snowfall({
   snowflakeCount = 150,
   color = '#fff',
   style,
-  speed = [1.0, 3.0],
+  speed = [2.0, 5.0],
   wind = [-0.5, 2.0],
   radius = [0.5, 3.0],
 }: SnowfallProps) {
